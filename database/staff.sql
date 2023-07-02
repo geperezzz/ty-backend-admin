@@ -2,7 +2,9 @@ CREATE TABLE staff (
     CONSTRAINT staff_pk
         PRIMARY KEY (national_id),
     CONSTRAINT staff_role_id_fk
-        FOREIGN KEY (role_id) REFERENCES roles (id),
+        FOREIGN KEY (role_id) REFERENCES roles (id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     national_id national_id NOT NULL,
     full_name TEXT NOT NULL,
     main_phone_no TEXT NOT NULL,

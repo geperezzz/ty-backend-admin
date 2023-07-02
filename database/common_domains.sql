@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE DOMAIN rif AS TEXT
     CONSTRAINT valid_rif
         CHECK (VALUE SIMILAR TO '(V|E|J)-[0-9]{1,}');
@@ -15,5 +13,3 @@ CREATE DOMAIN email AS TEXT
 CREATE DOMAIN telephone_no AS TEXT
     CONSTRAINT valid_telephone_no
         CHECK (VALUE ~ '^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$');
-
-COMMIT;

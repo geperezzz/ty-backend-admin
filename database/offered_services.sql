@@ -2,9 +2,13 @@ CREATE TABLE offered_services (
     CONSTRAINT offered_services_pk
         PRIMARY KEY (service_id, dealership_rif),
     CONSTRAINT offered_services_service_id_fk
-        FOREIGN KEY (service_id) REFERENCES services (id),
+        FOREIGN KEY (service_id) REFERENCES services (id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     CONSTRAINT offered_services_dealership_rif_fk
-        FOREIGN KEY (dealership_rif) REFERENCES dealerships (rif),
+        FOREIGN KEY (dealership_rif) REFERENCES dealerships (rif)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     service_id INTEGER NOT NULL,
     dealership_rif rif NOT NULL,
     min_reservation_time INTERVAL DAY TO MINUTE NOT NULL

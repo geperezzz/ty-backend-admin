@@ -2,7 +2,9 @@ CREATE TABLE discounts (
     CONSTRAINT discounts_pk
         PRIMARY KEY (discount_number, dealership_rif),
     CONSTRAINT discounts_dealership_rif_fk
-        FOREIGN KEY (dealership_rif) REFERENCES dealerships (rif),
+        FOREIGN KEY (dealership_rif) REFERENCES dealerships (rif)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     discount_number INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY,
     dealership_rif rif NOT NULL,
     discount_percentage NUMERIC NOT NULL

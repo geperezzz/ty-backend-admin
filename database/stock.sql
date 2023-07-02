@@ -2,9 +2,13 @@ CREATE TABLE stock (
     CONSTRAINT stock_pk
         PRIMARY KEY (product_id, dealership_rif),
     CONSTRAINT stock_product_id_fk
-        FOREIGN KEY (product_id) REFERENCES products (id),
+        FOREIGN KEY (product_id) REFERENCES products (id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     CONSTRAINT stock_dealership_rif_fk
-        FOREIGN KEY (dealership_rif) REFERENCES dealerships (rif),
+        FOREIGN KEY (dealership_rif) REFERENCES dealerships (rif)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     product_id INTEGER NOT NULL,
     dealership_rif rif NOT NULL,
     product_cost NUMERIC NOT NULL

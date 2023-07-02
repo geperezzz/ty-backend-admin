@@ -1,3 +1,5 @@
+BEGIN;
+
 \i common_domains.sql
 \i roles.sql
 \i staff.sql
@@ -22,3 +24,5 @@
 \i specializations.sql
 \i discounts.sql
 \i recommended_services.sql
+
+COMMIT;

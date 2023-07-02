@@ -2,9 +2,13 @@ CREATE TABLE orders (
     CONSTRAINT orders_pk
         PRIMARY KEY (id),
     CONSTRAINT orders_vehicle_plate_fk
-        FOREIGN KEY (vehicle_plate) REFERENCES vehicles (plate),
+        FOREIGN KEY (vehicle_plate) REFERENCES vehicles (plate)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     CONSTRAINT orders_analist_national_id_fk
-        FOREIGN KEY (analist_national_id) REFERENCES staff (national_id),
+        FOREIGN KEY (analist_national_id) REFERENCES staff (national_id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY,
     vehicle_plate TEXT NOT NULL,
     reservation_timestamp TIMESTAMP NOT NULL,

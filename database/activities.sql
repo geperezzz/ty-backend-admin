@@ -2,7 +2,9 @@ CREATE TABLE activities (
     CONSTRAINT activities_pk
         PRIMARY KEY (activity_number, service_id),
     CONSTRAINT activities_service_id_fk
-        FOREIGN KEY (service_id) REFERENCES services (id),
+        FOREIGN KEY (service_id) REFERENCES services (id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     activity_number INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY,
     service_id INTEGER NOT NULL,
     description TEXT NOT NULL,

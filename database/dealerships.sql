@@ -2,9 +2,13 @@ CREATE TABLE dealerships (
     CONSTRAINT dealerships_pk
         PRIMARY KEY (rif),
     CONSTRAINT dealerships_city_id_fk
-        FOREIGN KEY (city_id) REFERENCES cities (id),
+        FOREIGN KEY (city_id) REFERENCES cities (id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     CONSTRAINT dealerships_manager_national_id_fk
-        FOREIGN KEY (manager_national_id) REFERENCES staff (national_id),
+        FOREIGN KEY (manager_national_id) REFERENCES staff (national_id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     rif rif NOT NULL,
     name TEXT NOT NULL,
     city_id INTEGER NOT NULL,

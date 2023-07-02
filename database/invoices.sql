@@ -2,7 +2,9 @@ CREATE TABLE invoices (
     CONSTRAINT invoices_pk
         PRIMARY KEY (id),
     CONSTRAINT invoices_order_id_fk
-        FOREIGN KEY (order_id) REFERENCES orders (id),
+        FOREIGN KEY (order_id) REFERENCES orders (id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY,
     order_id INTEGER NOT NULL,
     amount_due NUMERIC NOT NULL
