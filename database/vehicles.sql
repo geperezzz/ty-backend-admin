@@ -18,5 +18,5 @@ CREATE TABLE vehicles (
     purchase_date DATE NOT NULL,
     additional_info TEXT,
     maintenance_summary TEXT,
-    owner_national_id rif NOT NULL
+    owner_national_id national_id NOT NULL
 );
