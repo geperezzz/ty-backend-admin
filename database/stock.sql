@@ -14,14 +14,14 @@ CREATE TABLE stock (
     product_cost NUMERIC NOT NULL
         CONSTRAINT valid_product_cost
             CHECK (product_cost >= 0),
-    stock_count INTEGER NOT NULL,
+    product_count INTEGER NOT NULL,
     vendor_name TEXT NOT NULL,
     max_capacity INTEGER NOT NULL,
     min_capacity INTEGER NOT NULL
         CONSTRAINT valid_min_capacity
             CHECK (min_capacity >= 0),
-    CONSTRAINT consistency_between_min_capacity_and_stock_count
-        CHECK (stock_count >= min_capacity),
+    CONSTRAINT consistency_between_min_capacity_and_product_count
+        CHECK (product_count >= min_capacity),
     CONSTRAINT consistency_between_min_capacity_and_max_capacity
         CHECK (max_capacity >= min_capacity)
 );
