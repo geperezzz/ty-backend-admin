@@ -11,7 +11,7 @@ CREATE TABLE vehicle_models (
             CHECK (weight_in_kg > 0),
     octane_rating SMALLINT NOT NULL
         CONSTRAINT valid_octane_rating
-            CHECK (octane_rating > 0),
+            CHECK (octane_rating IN (91, 95)),
     gearbox_oil_type TEXT NOT NULL,
     engine_oil_type TEXT NOT NULL,
     engine_coolant_type TEXT NOT NULL
