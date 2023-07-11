@@ -20,7 +20,9 @@ use services::*;
 
 #[actix_web::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let _ = dotenvy::dotenv();
+    dotenvy::dotenv()
+        .context(".env not found")?;
+
     let database_url = dotenvy::var("DATABASE_URL")
         .context("DATABASE_URL environment variable not found")?;
     let frontend_url = dotenvy::var("FRONTEND_URL")
