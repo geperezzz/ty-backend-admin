@@ -1,6 +1,7 @@
+use crate::services::service_error::ServiceError;
+
 mod services;
-mod models;
 
 fn main() {
-    println!("Hello, world!");
+    println!("{:?}", ServiceError::DomainValidationError("Soy un error de validacion de dominio".to_string()));
 }
