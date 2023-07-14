@@ -48,7 +48,7 @@ impl City {
     }
 
     pub async fn count(
-        connection: impl Executor<'_, Database = Postgres>
+        connection: impl Executor<'_, Database = Postgres>,
     ) -> Result<i64, sqlx::Error> {
         sqlx::query_scalar!(
             r#"
@@ -98,15 +98,15 @@ impl Paginable<City> for City {
                 OFFSET $2
             "#,
             pages.per_page,
-            page_no * pages.per_page
+            (page_no - 1) * pages.per_page
         )
         .fetch_all(connection)
         .await?;
 
         Ok(Page {
             per_page: pages.per_page,
-            page_no: page_no,
-            items: page_items
+            page_no,
+            items: page_items,
         })
     }
 }
