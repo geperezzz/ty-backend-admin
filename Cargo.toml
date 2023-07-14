@@ -9,6 +9,7 @@ edition = "2021"
 actix-cors = "0.6.4"
 actix-web = "4"
 anyhow = "1.0.71"
+async-trait = "0.1.71"
 bigdecimal = { version = "0.3.1", features = ["serde"] }
 dotenvy = "0.15.7"
 env_logger = "0.10.0"
