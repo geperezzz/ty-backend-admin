@@ -1,7 +1,5 @@
 use serde::Serialize;
 
-use crate::services::service_error::ServiceError;
-
 #[derive(Serialize)]
 #[serde(rename_all="camelCase")]
 pub struct NonPaginatedResponseDto<T: Serialize> {
@@ -35,8 +33,8 @@ pub struct PaginatedResponseDto<T: Serialize> {
     pub pagination: Pagination
 }
 
-// #[derive(Serialize)]
-// #[serde(rename_all="camelCase")]
-// pub struct ErrorResponseDto {
-//     pub error: ServiceError
-// }
+#[derive(Serialize)]
+#[serde(rename_all="camelCase")]
+pub struct ErrorResponseDto {
+    pub error: String
+}

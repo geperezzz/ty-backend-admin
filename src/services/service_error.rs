@@ -5,7 +5,7 @@ use actix_web::{
     HttpResponse
 };
 
-// use super::responses_dto::ErrorResponseDto;
+use super::responses_dto::ErrorResponseDto;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ServiceError {
@@ -22,11 +22,11 @@ pub enum ServiceError {
 }
 
 impl ResponseError for ServiceError {
-    // fn error_response(&self) -> HttpResponse<actix_web::body::BoxBody> {
-    //     HttpResponse::build(self.status_code())
-    //         .content_type(ContentType::json())
-    //         .json(ErrorResponseDto{error: *self})
-    // }
+    fn error_response(&self) -> HttpResponse<actix_web::body::BoxBody> {
+        HttpResponse::build(self.status_code())
+            .content_type(ContentType::json())
+            .json(ErrorResponseDto{error: format!("{}", self)})
+    }
 
     fn status_code(&self) -> StatusCode {
         match self {
