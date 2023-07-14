@@ -1,7 +1,4 @@
-use actix_web::{
-    ResponseError,
-    http::StatusCode
-};
+use actix_web::{http::StatusCode, ResponseError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ServiceError {
@@ -14,7 +11,7 @@ pub enum ServiceError {
     #[error("{0}")]
     InvalidCreateError(String),
     #[error("")]
-    UnexpectedError(#[from] anyhow::Error)
+    UnexpectedError(#[from] anyhow::Error),
 }
 
 impl ResponseError for ServiceError {

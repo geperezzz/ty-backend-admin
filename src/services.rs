@@ -1,2 +1,2 @@
-pub mod service_error;
 pub mod cities;
+pub mod service_error;

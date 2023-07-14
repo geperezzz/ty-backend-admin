@@ -1,16 +1,13 @@
-mod services;
 mod models;
+mod services;
+mod utils;
 
-use actix_web::{
-    HttpServer,
-    App,
-    middleware::{
-        NormalizePath,
-        TrailingSlash
-    },
-    web::Data
-};
 use actix_cors::Cors;
+use actix_web::{
+    middleware::{NormalizePath, TrailingSlash},
+    web::Data,
+    App, HttpServer,
+};
 use anyhow::Context;
 use env_logger::Env;
 use sqlx::postgres::PgPoolOptions;
@@ -20,23 +17,21 @@ use services::*;
 
 #[actix_web::main]
 async fn main() -> Result<(), anyhow::Error> {
-    dotenvy::dotenv()
-        .context(".env not found")?;
+    dotenvy::dotenv().context(".env not found")?;
 
-    let database_url = dotenvy::var("DATABASE_URL")
-        .context("DATABASE_URL environment variable not found")?;
-    let frontend_url = dotenvy::var("FRONTEND_URL")
-        .context("FRONTEND_URL environment variable not found")?;
+    let database_url =
+        dotenvy::var("DATABASE_URL").context("DATABASE_URL environment variable not found")?;
+    let frontend_url =
+        dotenvy::var("FRONTEND_URL").context("FRONTEND_URL environment variable not found")?;
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
-    
+
     let db = PgPoolOptions::new()
         .max_connections(6)
         .connect(database_url.as_str())
         .await
         .context("Couldn't connect to the database")?;
     let db = Data::new(db);
-
 
     HttpServer::new(move || {
         App::new()
