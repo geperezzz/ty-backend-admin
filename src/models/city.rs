@@ -47,6 +47,19 @@ impl City {
         .await
     }
 
+    pub async fn count(
+        connection: impl Executor<'_, Database = Postgres>
+    ) -> Result<i64, sqlx::Error> {
+        sqlx::query_scalar!(
+            r#"
+            SELECT COUNT(*) AS "total_cities!"
+            FROM cities
+            "#
+        )
+        .fetch_one(connection)
+        .await
+    }
+
     pub async fn delete(
         city_number: i32,
         state_id: i32,
@@ -92,7 +105,8 @@ impl Paginable<City> for City {
 
         Ok(Page {
             per_page: pages.per_page,
-            items: page_items,
+            page_no: page_no,
+            items: page_items
         })
     }
 }

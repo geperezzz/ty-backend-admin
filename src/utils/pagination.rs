@@ -38,5 +38,6 @@ impl<T, P: Paginable<T>> Pages<T, P> {
 
 pub struct Page<T> {
     pub per_page: i64,
-    pub items: Vec<T>,
+    pub page_no: i64,
+    pub items: Vec<T>
 }

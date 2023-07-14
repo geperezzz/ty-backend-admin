@@ -1,6 +1,6 @@
 use actix_web::{
     delete, get, patch, post, put,
-    web::{Data, Json, Query, ServiceConfig},
+    web::{Data, Json, Query, ServiceConfig, JsonBody},
     Responder,
 };
 use anyhow::{anyhow, Context};
@@ -10,6 +10,8 @@ use sqlx::{Pool, Postgres};
 use crate::{
     models::city::{City, InsertCity, UpdateCity},
     services::service_error::ServiceError,
+    services::pagination_params::PaginationParams, utils::pagination::Paginable,
+    services::responses_dto::*
 };
 
 pub fn configure(configuration: &mut ServiceConfig) {
@@ -50,15 +52,45 @@ async fn create_city(
         ),
     })?;
 
-    Ok(Json(created_city))
+    Ok(Json(NonPaginatedResponseDto{ data: created_city }))
 }
 
-#[get("/cities/view/")]
-async fn fetch_cities(db: Data<Pool<Postgres>>) -> Result<impl Responder, ServiceError> {
+#[get("/cities/")]
+async fn fetch_cities(Query(pagination_params): Query<PaginationParams>, db: Data<Pool<Postgres>>) -> Result<dyn Responder<Body = JsonBody<String>>, ServiceError> {
+    if pagination_params.per_page.is_some() && pagination_params.page_no.is_some() {
+        let fetched_cities = fetch_cities_paginated(pagination_params, db).await?;
+
+        let total_cities = City::count(db.get_ref())
+        .await
+        .context("Failed to fetch total cities number from the database")?;
+
+        return Ok(Json(PaginatedResponseDto{
+            data: fetched_cities,
+            pagination: Pagination::new(total_cities, pagination_params.page_no.unwrap(), pagination_params.per_page.unwrap())
+        }));
+    }
+    else if pagination_params.per_page.is_none() && pagination_params.page_no.is_none() {
+        let fetched_cities = fetch_all_cities(db).await?;
+        return Ok(Json(NonPaginatedResponseDto{data: fetched_cities}));
+    }
+
+    Err(ServiceError::InvalidQueryError("Missing query param per-page or page-no".to_string()))
+}
+
+async fn fetch_all_cities(db: Data<Pool<Postgres>>) -> Result<Vec<City>, ServiceError> {
     let fetched_cities = City::select_all(db.get_ref())
         .await
         .context("Failed to fetch the cities from the database")?;
-    Ok(Json(fetched_cities))
+    Ok(fetched_cities)
+}
+
+async fn fetch_cities_paginated(pagination_params: PaginationParams, db: Data<Pool<Postgres>>) -> Result<Vec<City>, ServiceError> {
+    let fetched_cities = City::paginate(pagination_params.per_page.unwrap())
+        .get_page(pagination_params.page_no.unwrap(), db.get_ref())
+        .await
+        .context("Failed to fetch the cities from the database for the provided page")?;
+
+    Ok(fetched_cities.items)
 }
 
 #[derive(Deserialize)]
@@ -83,7 +115,7 @@ async fn fetch_city(
             ),
         })?;
 
-    Ok(Json(fetched_city))
+    Ok(Json(NonPaginatedResponseDto{ data: fetched_city }))
 }
 
 fn deserialize_as_inner<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
@@ -135,7 +167,7 @@ async fn update_city_partially(
         ),
     })?;
 
-    Ok(Json(updated_city))
+    Ok(Json(NonPaginatedResponseDto{ data: updated_city }))
 }
 
 #[derive(Deserialize)]
@@ -176,7 +208,7 @@ async fn update_city_completely(
         ),
     })?;
 
-    Ok(Json(updated_city))
+    Ok(Json(NonPaginatedResponseDto{ data: updated_city }))
 }
 
 #[delete("/cities/")]
@@ -193,5 +225,5 @@ async fn delete_city(
             ),
         })?;
 
-    Ok(Json(deleted_city))
+    Ok(Json(NonPaginatedResponseDto{ data: deleted_city }))
 }
