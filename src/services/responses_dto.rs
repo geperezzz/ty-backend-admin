@@ -9,14 +9,14 @@ pub struct NonPaginatedResponseDto<T: Serialize> {
 #[derive(Serialize)]
 #[serde(rename_all="camelCase")]
 pub struct Pagination {
-    pub total: u32,
-    pub page: u32,
-    pub pages: u32,
-    pub per_page: u32
+    pub total: i64,
+    pub page: i64,
+    pub pages: i64,
+    pub per_page: i64
 }
 
 impl Pagination {
-    pub fn new (total: u32, page: u32, per_page: u32) -> Pagination {
+    pub fn new (total: i64, page: i64, per_page: i64) -> Pagination {
         Pagination { 
             total: total, 
             page: page, 
