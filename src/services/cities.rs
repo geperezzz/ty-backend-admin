@@ -49,7 +49,7 @@ async fn create_city(
     .await
     .map_err(|err| match err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidCreateError("The specified state_id does not exist".to_string())
+            ServiceError::InvalidCreateError("The specified stateId does not exist".to_string())
         }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to insert the city into the database"),
@@ -64,8 +64,35 @@ async fn fetch_cities(
     Query(pagination_params): Query<PaginationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<HttpResponse, ServiceError> {
+    if pagination_params.per_page.is_some() && pagination_params.page_no.is_none() {
+        return Err(ServiceError::MissingQueryParamError(
+            "Missing query param page-no".to_string()
+        ));
+    }
+
+    if pagination_params.per_page.is_none() && pagination_params.page_no.is_some() {
+        return Err(ServiceError::MissingQueryParamError(
+            "Missing query param per-page".to_string()
+        ));
+    }
+
     if pagination_params.per_page.is_some() && pagination_params.page_no.is_some() {
-        let fetched_cities = fetch_cities_paginated(&pagination_params, db.get_ref()).await?;
+
+        let (per_page, page_no) = (pagination_params.per_page.unwrap(), pagination_params.page_no.unwrap());
+
+        if page_no <= 0 {
+            return Err(ServiceError::InvalidQueryParamValueError(
+               "Query param page-no must be greater than 0".to_string() 
+            ));
+        }
+
+        if per_page <= 0 {
+            return Err(ServiceError::InvalidQueryParamValueError(
+               "Query param per-page must be greater than 0".to_string() 
+            ));
+        }
+
+        let fetched_cities = fetch_cities_paginated(per_page, page_no, db.get_ref()).await?;
 
         let total_cities = City::count(db.get_ref())
             .await
@@ -77,28 +104,23 @@ async fn fetch_cities(
                 data: fetched_cities,
                 pagination: Pagination::new(
                     total_cities,
-                    pagination_params.page_no.unwrap(),
-                    pagination_params.per_page.unwrap(),
+                    page_no,
+                    per_page,
                 ),
             });
 
         return Ok(response);
     }
-    if pagination_params.per_page.is_none() && pagination_params.page_no.is_none() {
-        let fetched_cities = fetch_all_cities(db.get_ref()).await?;
 
-        let response = HttpResponse::build(StatusCode::OK)
-            .content_type(ContentType::json())
-            .json(NonPaginatedResponseDto {
-                data: fetched_cities,
-            });
+    let fetched_cities = fetch_all_cities(db.get_ref()).await?;
 
-        return Ok(response);
-    }
+    let response = HttpResponse::build(StatusCode::OK)
+        .content_type(ContentType::json())
+        .json(NonPaginatedResponseDto {
+            data: fetched_cities,
+        });
 
-    Err(ServiceError::MissingQueryParamError(
-        "Missing query param per-page or page-no".to_string(),
-    ))
+    Ok(response)
 }
 
 async fn fetch_all_cities(db: &Pool<Postgres>) -> Result<Vec<City>, ServiceError> {
@@ -109,11 +131,12 @@ async fn fetch_all_cities(db: &Pool<Postgres>) -> Result<Vec<City>, ServiceError
 }
 
 async fn fetch_cities_paginated(
-    pagination_params: &PaginationParams,
+    per_page: i64,
+    page_no: i64,
     db: &Pool<Postgres>,
 ) -> Result<Vec<City>, ServiceError> {
-    let fetched_cities = City::paginate(pagination_params.per_page.unwrap())
-        .get_page(pagination_params.page_no.unwrap(), db)
+    let fetched_cities = City::paginate(per_page)
+        .get_page(page_no, db)
         .await
         .context("Failed to fetch the cities from the database for the provided page")?;
 
@@ -187,7 +210,7 @@ async fn update_city_partially(
     .await
     .map_err(|err| match err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidUpdateError("The specified state_id does not exist".to_string())
+            ServiceError::InvalidUpdateError("The specified stateId does not exist".to_string())
         }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to update the city from the database"),
@@ -228,7 +251,7 @@ async fn update_city_completely(
     .await
     .map_err(|err| match err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidUpdateError("The specified state_id does not exist".to_string())
+            ServiceError::InvalidUpdateError("The specified stateId does not exist".to_string())
         }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to update the city from the database"),
