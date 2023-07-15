@@ -5,6 +5,7 @@ use sqlx::{Executor, Postgres};
 use crate::utils::pagination::{Page, Pages, Paginable};
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct City {
     pub city_number: i32,
     pub name: String,
