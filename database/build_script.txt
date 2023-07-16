@@ -1,28 +1,32 @@
 BEGIN;
 
-\i common_domains.sql
-\i roles.sql
-\i staff.sql
-\i states.sql
-\i cities.sql
-\i dealerships.sql
-\i clients.sql
-\i vehicle_models.sql
-\i vehicles.sql
-\i orders.sql
-\i invoices.sql
-\i payments.sql
-\i supply_lines.sql
-\i products.sql
-\i stock.sql
-\i services.sql
-\i activities.sql
-\i orders_details.sql
-\i products_applications.sql
-\i offered_services.sql
-\i activities_prices.sql
-\i specializations.sql
-\i discounts.sql
-\i recommended_services.sql
+\ir ./domains/email.sql
+\ir ./domains/national_id.sql
+\ir ./domains/rif.sql
+\ir ./domains/telephone_no.sql
+
+\ir ./tables/roles.sql
+\ir ./tables/staff.sql
+\ir ./tables/states.sql
+\ir ./tables/cities.sql
+\ir ./tables/dealerships.sql
+\ir ./tables/clients.sql
+\ir ./tables/vehicle_models.sql
+\ir ./tables/vehicles.sql
+\ir ./tables/orders.sql
+\ir ./tables/invoices.sql
+\ir ./tables/payments.sql
+\ir ./tables/supply_lines.sql
+\ir ./tables/products.sql
+\ir ./tables/stock.sql
+\ir ./tables/services.sql
+\ir ./tables/activities.sql
+\ir ./tables/orders_details.sql
+\ir ./tables/products_applications.sql
+\ir ./tables/offered_services.sql
+\ir ./tables/activities_prices.sql
+\ir ./tables/specializations.sql
+\ir ./tables/discounts.sql
+\ir ./tables/recommended_services.sql
 
 COMMIT;
