@@ -3,7 +3,7 @@ BEGIN;
 \ir ./domains/email.sql
 \ir ./domains/national_id.sql
 \ir ./domains/rif.sql
-\ir ./domains/telephone_no.sql
+\ir ./domains/phone_no.sql
 
 \ir ./tables/roles.sql
 \ir ./tables/staff.sql

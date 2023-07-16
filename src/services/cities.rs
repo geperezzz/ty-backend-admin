@@ -1,9 +1,8 @@
 use actix_web::{
-    body::EitherBody,
     delete, get,
     http::{header::ContentType, StatusCode},
     patch, post, put,
-    web::{Data, Json, JsonBody, Query, ServiceConfig},
+    web::{Data, Json, Query, ServiceConfig},
     HttpResponse, Responder,
 };
 use anyhow::{anyhow, Context};
@@ -66,29 +65,31 @@ async fn fetch_cities(
 ) -> Result<HttpResponse, ServiceError> {
     if pagination_params.per_page.is_some() && pagination_params.page_no.is_none() {
         return Err(ServiceError::MissingQueryParamError(
-            "Missing query param page-no".to_string()
+            "Missing query param page-no".to_string(),
         ));
     }
 
     if pagination_params.per_page.is_none() && pagination_params.page_no.is_some() {
         return Err(ServiceError::MissingQueryParamError(
-            "Missing query param per-page".to_string()
+            "Missing query param per-page".to_string(),
         ));
     }
 
     if pagination_params.per_page.is_some() && pagination_params.page_no.is_some() {
-
-        let (per_page, page_no) = (pagination_params.per_page.unwrap(), pagination_params.page_no.unwrap());
+        let (per_page, page_no) = (
+            pagination_params.per_page.unwrap(),
+            pagination_params.page_no.unwrap(),
+        );
 
         if page_no <= 0 {
             return Err(ServiceError::InvalidQueryParamValueError(
-               "Query param page-no must be greater than 0".to_string() 
+                "Query param page-no must be greater than 0".to_string(),
             ));
         }
 
         if per_page <= 0 {
             return Err(ServiceError::InvalidQueryParamValueError(
-               "Query param per-page must be greater than 0".to_string() 
+                "Query param per-page must be greater than 0".to_string(),
             ));
         }
 
@@ -102,11 +103,7 @@ async fn fetch_cities(
             .content_type(ContentType::json())
             .json(PaginatedResponseDto {
                 data: fetched_cities,
-                pagination: Pagination::new(
-                    total_cities,
-                    page_no,
-                    per_page,
-                ),
+                pagination: Pagination::new(total_cities, page_no, per_page),
             });
 
         return Ok(response);
