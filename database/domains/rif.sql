@@ -1,0 +1,3 @@
+CREATE DOMAIN rif AS TEXT
+    CONSTRAINT valid_rif
+        CHECK (VALUE SIMILAR TO '(V|E|J)-[0-9]{1,}');
