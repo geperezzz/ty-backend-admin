@@ -41,6 +41,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .wrap(Cors::permissive().allowed_origin(frontend_url.as_str()))
             .configure(cities::configure)
             .configure(clients::configure)
+            .configure(vehicles::configure)
     })
     .bind(("localhost", 8080))
     .context("Couldn't start the server")?

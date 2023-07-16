@@ -193,13 +193,10 @@ impl UpdateClient {
         connection: impl Executor<'_, Database = Postgres>,
     ) -> Result<Client, sqlx::Error> {
         let new_national_id = self.national_id.as_ref().unwrap_or(&target.national_id);
-        let new_full_name = self.full_name.as_ref().unwrap_or(&target.full_name);
-        let new_main_phone_no = self.main_phone_no.as_ref().unwrap_or(&target.main_phone_no);
-        let new_secondary_phone_no = self
-            .secondary_phone_no
-            .as_ref()
-            .unwrap_or(&target.secondary_phone_no);
-        let new_email = self.email.as_ref().unwrap_or(&target.email);
+        let new_full_name = self.full_name.unwrap_or(target.full_name);
+        let new_main_phone_no = self.main_phone_no.unwrap_or(target.main_phone_no);
+        let new_secondary_phone_no = self.secondary_phone_no.unwrap_or(target.secondary_phone_no);
+        let new_email = self.email.unwrap_or(target.email);
 
         sqlx::query_as!(
             Client,
