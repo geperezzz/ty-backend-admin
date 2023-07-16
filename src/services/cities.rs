@@ -6,7 +6,7 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use anyhow::{anyhow, Context};
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
-    utils::pagination::Paginable,
+    utils::{deserialization::MaybeAbsent, pagination::Paginable},
 };
 
 pub fn configure(configuration: &mut ServiceConfig) {
@@ -46,9 +46,12 @@ async fn create_city(
     }
     .insert(db.get_ref())
     .await
-    .map_err(|err| match err {
+    .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidCreateError("The specified stateId does not exist".to_string())
+            ServiceError::InvalidCreateError(
+                "The specified stateId does not exist".to_string(),
+                anyhow!(err)
+            )
         }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to insert the city into the database"),
@@ -97,7 +100,7 @@ async fn fetch_cities(
 
         let total_cities = City::count(db.get_ref())
             .await
-            .context("Failed to fetch total cities number from the database")?;
+            .context("Failed to count the cities from the database")?;
 
         let response = HttpResponse::build(StatusCode::OK)
             .content_type(ContentType::json())
@@ -155,22 +158,17 @@ async fn fetch_city(
 ) -> Result<impl Responder, ServiceError> {
     let fetched_city = City::select(params.city_number, params.state_id, db.get_ref())
         .await
-        .map_err(|err| match err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound("city".to_string()),
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
+                "city".to_string(),
+                anyhow!(err)
+            ),
             _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to get the city from the database"),
+                anyhow!(err).context("Failed to fetch the city from the database"),
             ),
         })?;
 
     Ok(Json(NonPaginatedResponseDto { data: fetched_city }))
-}
-
-fn deserialize_as_inner<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    Ok(Some(T::deserialize(deserializer)?))
 }
 
 #[derive(Deserialize, Default)]
@@ -178,10 +176,8 @@ where
 #[serde(deny_unknown_fields)]
 #[serde(default)]
 struct UpdateCityPartiallyPayload {
-    #[serde(deserialize_with = "deserialize_as_inner")]
-    name: Option<String>,
-    #[serde(deserialize_with = "deserialize_as_inner")]
-    state_id: Option<i32>,
+    name: MaybeAbsent<String>,
+    state_id: MaybeAbsent<i32>,
 }
 
 #[patch("/cities/")]
@@ -192,23 +188,29 @@ async fn update_city_partially(
 ) -> Result<impl Responder, ServiceError> {
     let city_to_update = City::select(params.city_number, params.state_id, db.get_ref())
         .await
-        .map_err(|err| match err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound("city".to_string()),
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
+                "city".to_string(),
+                anyhow!(err)
+            ),
             _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to get the city to update from the database"),
+                anyhow!(err).context("Failed to fetch the city to update from the database"),
             ),
         })?;
 
     let updated_city = UpdateCity {
-        name: payload.name,
-        state_id: payload.state_id,
+        name: payload.name.into(),
+        state_id: payload.state_id.into(),
     }
     .update(city_to_update, db.get_ref())
     .await
-    .map_err(|err| match err {
+    .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidUpdateError("The specified stateId does not exist".to_string())
-        }
+            ServiceError::InvalidUpdateError(
+                "The specified stateId does not exist".to_string(),
+                anyhow!(err)
+            )
+        },
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to update the city from the database"),
         ),
@@ -233,10 +235,13 @@ async fn update_city_completely(
 ) -> Result<impl Responder, ServiceError> {
     let city_to_update = City::select(params.city_number, params.state_id, db.get_ref())
         .await
-        .map_err(|err| match err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound("city".to_string()),
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
+                "city".to_string(),
+                anyhow!(err)
+            ),
             _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to get the city to update from the database"),
+                anyhow!(err).context("Failed to fetch the city to update from the database"),
             ),
         })?;
 
@@ -246,10 +251,13 @@ async fn update_city_completely(
     }
     .update(city_to_update, db.get_ref())
     .await
-    .map_err(|err| match err {
+    .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidUpdateError("The specified stateId does not exist".to_string())
-        }
+            ServiceError::InvalidUpdateError(
+                "The specified stateId does not exist".to_string(),
+                anyhow!(err)
+            )
+        },
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to update the city from the database"),
         ),
@@ -265,10 +273,13 @@ async fn delete_city(
 ) -> Result<impl Responder, ServiceError> {
     let deleted_city = City::delete(params.city_number, params.state_id, db.get_ref())
         .await
-        .map_err(|err| match err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound("city".to_string()),
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
+                "city".to_string(),
+                anyhow!(err)
+            ),
             _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to get the city to delete from the database"),
+                anyhow!(err).context("Failed to fetch the city to delete from the database"),
             ),
         })?;
 

@@ -10,15 +10,15 @@ pub enum ServiceError {
     #[error("{0}")]
     DomainValidationError(String),
     #[error("There is not any {0} with the given id")]
-    ResourceNotFound(String),
+    ResourceNotFound(String, #[source] anyhow::Error),
     #[error("{0}")]
     MissingQueryParamError(String),
     #[error("{0}")]
     InvalidQueryParamValueError(String),
     #[error("{0}")]
-    InvalidUpdateError(String),
+    InvalidUpdateError(String, #[source] anyhow::Error),
     #[error("{0}")]
-    InvalidCreateError(String),
+    InvalidCreateError(String, #[source] anyhow::Error),
     #[error("")]
     UnexpectedError(#[from] anyhow::Error),
 }
@@ -35,11 +35,11 @@ impl ResponseError for ServiceError {
     fn status_code(&self) -> StatusCode {
         match self {
             ServiceError::DomainValidationError(_) => StatusCode::BAD_REQUEST,
-            ServiceError::ResourceNotFound(_) => StatusCode::NOT_FOUND,
+            ServiceError::ResourceNotFound(_, _) => StatusCode::NOT_FOUND,
             ServiceError::MissingQueryParamError(_) => StatusCode::BAD_REQUEST,
             ServiceError::InvalidQueryParamValueError(_) => StatusCode::UNPROCESSABLE_ENTITY,
-            ServiceError::InvalidUpdateError(_) => StatusCode::BAD_REQUEST,
-            ServiceError::InvalidCreateError(_) => StatusCode::BAD_REQUEST,
+            ServiceError::InvalidUpdateError(_, _) => StatusCode::BAD_REQUEST,
+            ServiceError::InvalidCreateError(_, _) => StatusCode::BAD_REQUEST,
             ServiceError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

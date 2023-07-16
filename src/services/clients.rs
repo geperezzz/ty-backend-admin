@@ -6,7 +6,7 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use anyhow::{anyhow, Context};
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
-    utils::pagination::Paginable,
+    utils::{deserialization::MaybeAbsent, pagination::Paginable},
 };
 
 pub fn configure(configuration: &mut ServiceConfig) {
@@ -52,16 +52,21 @@ async fn create_client(
     }
     .insert(db.get_ref())
     .await
-    .map_err(|err| match err {
+    .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
-            ServiceError::InvalidUpdateError("The specified nationalId already exists".to_string())
+            ServiceError::InvalidCreateError(
+                "The specified nationalId already exists".to_string(),
+                anyhow!(err)
+            )
         }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to create the client from the database"),
         ),
     })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: created_client }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: created_client,
+    }))
 }
 
 #[get("/clients/")]
@@ -160,22 +165,19 @@ async fn fetch_client(
 ) -> Result<impl Responder, ServiceError> {
     let fetched_client = Client::select(params.national_id, db.get_ref())
         .await
-        .map_err(|err| match err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound("client".to_string()),
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
+                "client".to_string(),
+                anyhow!(err)
+            ),
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to fetch the client from the database"),
             ),
         })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: fetched_client }))
-}
-
-fn deserialize_as_inner<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    Ok(Some(T::deserialize(deserializer)?))
+    Ok(Json(NonPaginatedResponseDto {
+        data: fetched_client,
+    }))
 }
 
 #[derive(Deserialize, Default)]
@@ -183,16 +185,11 @@ where
 #[serde(deny_unknown_fields)]
 #[serde(default)]
 struct UpdateClientPartiallyPayload {
-    #[serde(deserialize_with = "deserialize_as_inner")]
-    national_id: Option<String>,
-    #[serde(deserialize_with = "deserialize_as_inner")]
-    full_name: Option<String>,
-    #[serde(deserialize_with = "deserialize_as_inner")]
-    main_phone_no: Option<String>,
-    #[serde(deserialize_with = "deserialize_as_inner")]
-    secondary_phone_no: Option<String>,
-    #[serde(deserialize_with = "deserialize_as_inner")]
-    email: Option<String>,
+    national_id: MaybeAbsent<String>,
+    full_name: MaybeAbsent<String>,
+    main_phone_no: MaybeAbsent<String>,
+    secondary_phone_no: MaybeAbsent<String>,
+    email: MaybeAbsent<String>,
 }
 
 #[patch("/clients/")]
@@ -203,32 +200,40 @@ async fn update_client_partially(
 ) -> Result<impl Responder, ServiceError> {
     let city_to_update = Client::select(params.national_id, db.get_ref())
         .await
-        .map_err(|err| match err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound("client".to_string()),
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
+                "client".to_string(),
+                anyhow!(err)
+            ),
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to fetch the client to update from the database"),
             ),
         })?;
 
     let updated_client = UpdateClient {
-        national_id: payload.national_id,
-        full_name: payload.full_name,
-        main_phone_no: payload.main_phone_no,
-        secondary_phone_no: payload.secondary_phone_no,
-        email: payload.email,
+        national_id: payload.national_id.into(),
+        full_name: payload.full_name.into(),
+        main_phone_no: payload.main_phone_no.into(),
+        secondary_phone_no: payload.secondary_phone_no.into(),
+        email: payload.email.into(),
     }
     .update(city_to_update, db.get_ref())
     .await
-    .map_err(|err| match err {
+    .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
-            ServiceError::InvalidUpdateError("The specified nationalId already exists".to_string())
+            ServiceError::InvalidUpdateError(
+                "The specified nationalId already exists".to_string(),
+                anyhow!(err)
+            )
         }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to update the client from the database"),
         ),
     })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: updated_client }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: updated_client,
+    }))
 }
 
 #[derive(Deserialize)]
@@ -250,8 +255,11 @@ async fn update_client_completely(
 ) -> Result<impl Responder, ServiceError> {
     let city_to_update = Client::select(params.national_id, db.get_ref())
         .await
-        .map_err(|err| match err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound("client".to_string()),
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
+                "client".to_string(),
+                anyhow!(err)
+            ),
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to fetch the client to update from the database"),
             ),
@@ -266,16 +274,21 @@ async fn update_client_completely(
     }
     .update(city_to_update, db.get_ref())
     .await
-    .map_err(|err| match err {
+    .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
-            ServiceError::InvalidUpdateError("The specified nationalId already exists".to_string())
+            ServiceError::InvalidUpdateError(
+                "The specified nationalId already exists".to_string(),
+                anyhow!(err)
+            )
         }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to update the client from the database"),
         ),
     })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: updated_client }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: updated_client,
+    }))
 }
 
 #[delete("/clients/")]
@@ -285,12 +298,17 @@ async fn delete_client(
 ) -> Result<impl Responder, ServiceError> {
     let deleted_client = Client::delete(params.national_id, db.get_ref())
         .await
-        .map_err(|err| match err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound("client".to_string()),
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
+                "client".to_string(),
+                anyhow!(err)
+            ),
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to get the client to delete from the database"),
             ),
         })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: deleted_client }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: deleted_client,
+    }))
 }
