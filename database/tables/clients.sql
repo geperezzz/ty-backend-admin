@@ -3,7 +3,7 @@ CREATE TABLE clients (
         PRIMARY KEY (national_id),
     national_id national_id NOT NULL,
     full_name TEXT NOT NULL,
-    main_phone_no TEXT NOT NULL,
-    secondary_phone_no TEXT NOT NULL,
+    main_phone_no phone_no NOT NULL,
+    secondary_phone_no phone_no NOT NULL,
     email email NOT NULL
 );
