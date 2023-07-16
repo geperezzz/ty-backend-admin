@@ -56,7 +56,7 @@ async fn create_client(
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
             ServiceError::InvalidCreateError(
                 "The specified nationalId already exists".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
@@ -166,10 +166,9 @@ async fn fetch_client(
     let fetched_client = Client::select(params.national_id, db.get_ref())
         .await
         .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
-                "client".to_string(),
-                anyhow!(err)
-            ),
+            sqlx::Error::RowNotFound => {
+                ServiceError::ResourceNotFound("client".to_string(), anyhow!(err))
+            }
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to fetch the client from the database"),
             ),
@@ -201,10 +200,9 @@ async fn update_client_partially(
     let city_to_update = Client::select(params.national_id, db.get_ref())
         .await
         .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
-                "client".to_string(),
-                anyhow!(err)
-            ),
+            sqlx::Error::RowNotFound => {
+                ServiceError::ResourceNotFound("client".to_string(), anyhow!(err))
+            }
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to fetch the client to update from the database"),
             ),
@@ -223,7 +221,7 @@ async fn update_client_partially(
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified nationalId already exists".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
@@ -256,10 +254,9 @@ async fn update_client_completely(
     let city_to_update = Client::select(params.national_id, db.get_ref())
         .await
         .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
-                "client".to_string(),
-                anyhow!(err)
-            ),
+            sqlx::Error::RowNotFound => {
+                ServiceError::ResourceNotFound("client".to_string(), anyhow!(err))
+            }
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to fetch the client to update from the database"),
             ),
@@ -278,7 +275,7 @@ async fn update_client_completely(
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified nationalId already exists".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
@@ -299,10 +296,9 @@ async fn delete_client(
     let deleted_client = Client::delete(params.national_id, db.get_ref())
         .await
         .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
-                "client".to_string(),
-                anyhow!(err)
-            ),
+            sqlx::Error::RowNotFound => {
+                ServiceError::ResourceNotFound("client".to_string(), anyhow!(err))
+            }
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to get the client to delete from the database"),
             ),

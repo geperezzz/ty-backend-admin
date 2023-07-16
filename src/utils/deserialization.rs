@@ -1,10 +1,9 @@
-use serde::{Deserialize, Deserializer, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 use serde_with::rust::double_option;
 
 #[derive(Deserialize)]
 pub struct MaybeNull<T: DeserializeOwned>(
-    #[serde(deserialize_with = "double_option::deserialize")]
-    Option<Option<T>>
+    #[serde(deserialize_with = "double_option::deserialize")] Option<Option<T>>,
 );
 
 impl<T: DeserializeOwned> From<Option<T>> for MaybeNull<T> {
@@ -21,16 +20,15 @@ impl<T: DeserializeOwned> From<MaybeNull<T>> for Option<T> {
 
 fn deserialize_as_inner<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
-D: Deserializer<'de>,
-T: Deserialize<'de>,
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
 {
     Ok(Some(T::deserialize(deserializer)?))
 }
 
 #[derive(Deserialize)]
 pub struct MaybeAbsent<T: DeserializeOwned>(
-    #[serde(deserialize_with = "deserialize_as_inner")]
-    Option<T>
+    #[serde(deserialize_with = "deserialize_as_inner")] Option<T>,
 );
 
 impl<T: DeserializeOwned> Default for MaybeAbsent<T> {

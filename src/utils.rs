@@ -1,2 +1,2 @@
-pub mod pagination;
 pub mod deserialization;
+pub mod pagination;

@@ -11,11 +11,14 @@ use sqlx::{Pool, Postgres};
 use time::Date;
 
 use crate::{
-    models::vehicle::{Vehicle, InsertVehicle, UpdateVehicle},
+    models::vehicle::{InsertVehicle, UpdateVehicle, Vehicle},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
-    utils::{deserialization::{MaybeAbsent, MaybeNull}, pagination::Paginable},
+    utils::{
+        deserialization::{MaybeAbsent, MaybeNull},
+        pagination::Paginable,
+    },
 };
 
 pub fn configure(configuration: &mut ServiceConfig) {
@@ -67,15 +70,15 @@ async fn create_vehicle(
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
             ServiceError::InvalidCreateError(
                 "The specified plate already exists".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
-        },
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidCreateError(
                 "The specified modelId does not exist".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
-        },
+        }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to create the client from the database"),
         ),
@@ -183,10 +186,9 @@ async fn fetch_vehicle(
     let fetched_vehicle = Vehicle::select(params.plate, db.get_ref())
         .await
         .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
-                "vehicle".to_string(),
-                anyhow!(err)
-            ),
+            sqlx::Error::RowNotFound => {
+                ServiceError::ResourceNotFound("vehicle".to_string(), anyhow!(err))
+            }
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to fetch the vehicle from the database"),
             ),
@@ -220,17 +222,17 @@ async fn update_vehicle_partially(
     Json(payload): Json<UpdateVehiclePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update = Vehicle::select(params.plate, db.get_ref())
-        .await
-        .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
-                "vehicle".to_string(),
-                anyhow!(err)
-            ),
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the vehicle to update from the database"),
-            ),
-        })?;
+    let city_to_update =
+        Vehicle::select(params.plate, db.get_ref())
+            .await
+            .map_err(|err| match &err {
+                sqlx::Error::RowNotFound => {
+                    ServiceError::ResourceNotFound("vehicle".to_string(), anyhow!(err))
+                }
+                _ => ServiceError::UnexpectedError(
+                    anyhow!(err).context("Failed to fetch the vehicle to update from the database"),
+                ),
+            })?;
 
     let updated_vehicle = UpdateVehicle {
         plate: payload.plate.into(),
@@ -250,15 +252,15 @@ async fn update_vehicle_partially(
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified plate already exists".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
-        },
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified modelId does not exist".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
-        },
+        }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to update the vehicle from the database"),
         ),
@@ -291,17 +293,17 @@ async fn update_vehicle_completely(
     Json(payload): Json<UpdateVehicleCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update = Vehicle::select(params.plate, db.get_ref())
-        .await
-        .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
-                "vehicle".to_string(),
-                anyhow!(err)
-            ),
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the vehicle to update from the database"),
-            ),
-        })?;
+    let city_to_update =
+        Vehicle::select(params.plate, db.get_ref())
+            .await
+            .map_err(|err| match &err {
+                sqlx::Error::RowNotFound => {
+                    ServiceError::ResourceNotFound("vehicle".to_string(), anyhow!(err))
+                }
+                _ => ServiceError::UnexpectedError(
+                    anyhow!(err).context("Failed to fetch the vehicle to update from the database"),
+                ),
+            })?;
 
     let updated_vehicle = UpdateVehicle {
         plate: Some(payload.plate),
@@ -321,15 +323,15 @@ async fn update_vehicle_completely(
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified plate already exists".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
-        },
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified modelId does not exist".to_string(),
-                anyhow!(err)
+                anyhow!(err),
             )
-        },
+        }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to update the vehicle from the database"),
         ),
@@ -348,10 +350,9 @@ async fn delete_vehicle(
     let deleted_vehicle = Vehicle::delete(params.plate, db.get_ref())
         .await
         .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => ServiceError::ResourceNotFound(
-                "vehicle".to_string(),
-                anyhow!(err)
-            ),
+            sqlx::Error::RowNotFound => {
+                ServiceError::ResourceNotFound("vehicle".to_string(), anyhow!(err))
+            }
             _ => ServiceError::UnexpectedError(
                 anyhow!(err).context("Failed to get the vehicle to delete from the database"),
             ),
