@@ -10,7 +10,7 @@ use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    models::state::{State, InsertState, UpdateState},
+    models::state::{InsertState, State, UpdateState},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
@@ -39,16 +39,14 @@ async fn create_state(
     Json(payload): Json<CreateStatePayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let created_state = InsertState {
-        name: payload.name,
-    }
-    .insert(db.get_ref())
-    .await
-    .map_err(|err| match &err {
-        _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to create the state from the database"),
-        ),
-    })?;
+    let created_state = InsertState { name: payload.name }
+        .insert(db.get_ref())
+        .await
+        .map_err(|err| match &err {
+            _ => ServiceError::UnexpectedError(
+                anyhow!(err).context("Failed to create the state from the database"),
+            ),
+        })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: created_state,
@@ -179,16 +177,17 @@ async fn update_state_partially(
     Json(payload): Json<UpdateStatePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let state_to_update = State::select(params.id, db.get_ref())
-        .await
-        .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => {
-                ServiceError::ResourceNotFound("state".to_string(), anyhow!(err))
-            }
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the state to update from the database"),
-            ),
-        })?;
+    let state_to_update =
+        State::select(params.id, db.get_ref())
+            .await
+            .map_err(|err| match &err {
+                sqlx::Error::RowNotFound => {
+                    ServiceError::ResourceNotFound("state".to_string(), anyhow!(err))
+                }
+                _ => ServiceError::UnexpectedError(
+                    anyhow!(err).context("Failed to fetch the state to update from the database"),
+                ),
+            })?;
 
     let updated_state = UpdateState {
         name: payload.name.into(),
@@ -210,7 +209,7 @@ async fn update_state_partially(
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 struct UpdateStateCompletelyPayload {
-    name: String
+    name: String,
 }
 
 #[put("/states/")]
@@ -219,16 +218,17 @@ async fn update_state_completely(
     Json(payload): Json<UpdateStateCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let state_to_update = State::select(params.id, db.get_ref())
-        .await
-        .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => {
-                ServiceError::ResourceNotFound("state".to_string(), anyhow!(err))
-            }
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the state to update from the database"),
-            ),
-        })?;
+    let state_to_update =
+        State::select(params.id, db.get_ref())
+            .await
+            .map_err(|err| match &err {
+                sqlx::Error::RowNotFound => {
+                    ServiceError::ResourceNotFound("state".to_string(), anyhow!(err))
+                }
+                _ => ServiceError::UnexpectedError(
+                    anyhow!(err).context("Failed to fetch the state to update from the database"),
+                ),
+            })?;
 
     let updated_state = UpdateState {
         name: Some(payload.name),
