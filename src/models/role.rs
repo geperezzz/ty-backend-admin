@@ -6,27 +6,25 @@ use crate::utils::pagination::{Page, Pages, Paginable};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct State {
+pub struct Role {
     pub id: i32,
     pub name: String,
+    pub description: String,
 }
 
-impl State {
+impl Role {
     pub async fn select(
         id: i32,
         connection: impl Executor<'_, Database = Postgres>,
-    ) -> Result<State, sqlx::Error> {
+    ) -> Result<Role, sqlx::Error> {
         sqlx::query_as!(
-            State,
+            Role,
             r#"
-            SELECT
-                id,
-                name
-            FROM states
-            WHERE
-                id = $1
+            SELECT id, name, description
+            FROM roles
+            WHERE id = $1
             "#,
-            id
+            id,
         )
         .fetch_one(connection)
         .await
@@ -34,14 +32,12 @@ impl State {
 
     pub async fn select_all(
         connection: impl Executor<'_, Database = Postgres>,
-    ) -> Result<Vec<State>, sqlx::Error> {
+    ) -> Result<Vec<Role>, sqlx::Error> {
         sqlx::query_as!(
-            State,
+            Role,
             r#"
-            SELECT
-                id,
-                name
-            FROM states
+            SELECT id, name, description
+            FROM roles
             "#
         )
         .fetch_all(connection)
@@ -53,8 +49,8 @@ impl State {
     ) -> Result<i64, sqlx::Error> {
         sqlx::query_scalar!(
             r#"
-            SELECT COUNT(*) AS "total_states!"
-            FROM states
+            SELECT COUNT(*) AS "total_roles!"
+            FROM roles
             "#
         )
         .fetch_one(connection)
@@ -64,18 +60,15 @@ impl State {
     pub async fn delete(
         id: i32,
         connection: impl Executor<'_, Database = Postgres>,
-    ) -> Result<State, sqlx::Error> {
+    ) -> Result<Role, sqlx::Error> {
         sqlx::query_as!(
-            State,
+            Role,
             r#"
-            DELETE FROM states
-            WHERE
-                id = $1
-            RETURNING
-                id,
-                name
+            DELETE FROM roles
+            WHERE id = $1
+            RETURNING id, name, description
             "#,
-            id
+            id,
         )
         .fetch_one(connection)
         .await
@@ -83,19 +76,17 @@ impl State {
 }
 
 #[async_trait]
-impl Paginable<State> for State {
+impl Paginable<Role> for Role {
     async fn get_page(
-        pages: &Pages<State, State>,
+        pages: &Pages<Role, Role>,
         page_no: i64,
         connection: impl Executor<'_, Database = Postgres>,
-    ) -> Result<Page<State>, sqlx::Error> {
+    ) -> Result<Page<Role>, sqlx::Error> {
         let page_items = sqlx::query_as!(
-            State,
+            Role,
             r#"
-                SELECT
-                    id,
-                    name
-                FROM states
+                SELECT id, name, description
+                FROM roles
                 LIMIT $1
                 OFFSET $2
             "#,
@@ -114,29 +105,25 @@ impl Paginable<State> for State {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct InsertState {
+pub struct InsertRole {
     pub name: String,
+    pub description: String,
 }
 
-impl InsertState {
+impl InsertRole {
     pub async fn insert(
         self,
         connection: impl Executor<'_, Database = Postgres>,
-    ) -> Result<State, sqlx::Error> {
+    ) -> Result<Role, sqlx::Error> {
         sqlx::query_as!(
-            State,
+            Role,
             r#"
-            INSERT INTO states (
-                name
-            )
-            VALUES (
-                $1
-            )
-            RETURNING
-                id,
-                name
+            INSERT INTO roles (name, description)
+            VALUES ($1, $2)
+            RETURNING id, name, description
             "#,
-            self.name as _
+            self.name,
+            self.description
         )
         .fetch_one(connection)
         .await
@@ -144,32 +131,33 @@ impl InsertState {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct UpdateState {
+pub struct UpdateRole {
     pub name: Option<String>,
+    pub description: Option<String>,
 }
 
-impl UpdateState {
+impl UpdateRole {
     pub async fn update(
         self,
-        target: State,
+        target: Role,
         connection: impl Executor<'_, Database = Postgres>,
-    ) -> Result<State, sqlx::Error> {
+    ) -> Result<Role, sqlx::Error> {
         let new_name = self.name.unwrap_or(target.name);
+        let new_description = self.description.unwrap_or(target.description);
 
         sqlx::query_as!(
-            State,
+            Role,
             r#"
-            UPDATE states
+            UPDATE roles
             SET
-                name = $1
-            WHERE
-                id = $2
-            RETURNING
-                id,
-                name
+                name = $1,
+                description = $2
+            WHERE id = $3
+            RETURNING id, name, description
             "#,
-            new_name as _,
-            target.id as _
+            new_name,
+            new_description,
+            target.id
         )
         .fetch_one(connection)
         .await
