@@ -43,6 +43,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .configure(clients::configure)
             .configure(vehicles::configure)
             .configure(states::configure)
+            .configure(vehicle_models::configure)
             .configure(roles::configure)
             .configure(supply_lines::configure)
             .service(web::scope("/products").configure(products::configure))

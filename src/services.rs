@@ -1,5 +1,6 @@
 pub mod cities;
 pub mod clients;
+pub mod vehicle_models;
 pub mod pagination_params;
 pub mod products;
 pub mod responses_dto;
