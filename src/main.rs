@@ -46,6 +46,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .configure(roles::configure)
             .configure(supply_lines::configure)
             .service(web::scope("/products").configure(products::configure))
+            .service(web::scope("/staff").configure(staff::configure))
     })
     .bind(("localhost", 8080))
     .context("Couldn't start the server")?
