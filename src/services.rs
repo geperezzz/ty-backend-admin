@@ -5,4 +5,5 @@ pub mod responses_dto;
 pub mod roles;
 pub mod service_error;
 pub mod states;
+pub mod supply_lines;
 pub mod vehicles;
