@@ -9,3 +9,4 @@ pub mod service_error;
 pub mod states;
 pub mod supply_lines;
 pub mod vehicles;
+pub mod activities;
