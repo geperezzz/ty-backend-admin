@@ -5,7 +5,7 @@ mod utils;
 use actix_cors::Cors;
 use actix_web::{
     middleware::{NormalizePath, TrailingSlash},
-    web::Data,
+    web::{self, Data},
     App, HttpServer,
 };
 use anyhow::Context;
@@ -45,6 +45,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .configure(states::configure)
             .configure(roles::configure)
             .configure(supply_lines::configure)
+            .service(web::scope("/products").configure(products::configure))
     })
     .bind(("localhost", 8080))
     .context("Couldn't start the server")?
