@@ -44,6 +44,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .configure(vehicles::configure)
             .configure(states::configure)
             .configure(roles::configure)
+            .configure(supply_lines::configure)
     })
     .bind(("localhost", 8080))
     .context("Couldn't start the server")?
