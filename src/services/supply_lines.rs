@@ -10,7 +10,7 @@ use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    models::state::{InsertState, State, UpdateState},
+    models::supply_line::{InsertSupplyLine, SupplyLine, UpdateSupplyLine},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
@@ -19,42 +19,38 @@ use crate::{
 
 pub fn configure(configuration: &mut ServiceConfig) {
     configuration
-        .service(fetch_states)
-        .service(fetch_state)
-        .service(create_state)
-        .service(update_state_partially)
-        .service(update_state_completely)
-        .service(delete_state);
+        .service(fetch_supply_lines)
+        .service(fetch_supply_line)
+        .service(create_supply_line)
+        .service(update_supply_line_partially)
+        .service(update_supply_line_completely)
+        .service(delete_supply_line);
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct CreateStatePayload {
+struct CreateSupplyLinePayload {
     name: String,
 }
 
-#[post("/states/")]
-async fn create_state(
-    Json(payload): Json<CreateStatePayload>,
+#[post("/supply-lines/")]
+async fn create_supply_line(
+    Json(payload): Json<CreateSupplyLinePayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let created_state = InsertState { name: payload.name }
+    let created_supply_line = InsertSupplyLine { name: payload.name }
         .insert(db.get_ref())
         .await
-        .map_err(|err| match &err {
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to create the state from the database"),
-            ),
-        })?;
+        .context("Failed to insert the supply line into the database")?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: created_state,
+        data: created_supply_line,
     }))
 }
 
-#[get("/states/")]
-async fn fetch_states(
+#[get("/supply-lines/")]
+async fn fetch_supply_lines(
     Query(pagination_params): Query<PaginationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<HttpResponse, ServiceError> {
@@ -88,78 +84,79 @@ async fn fetch_states(
             ));
         }
 
-        let fetched_states = fetch_states_paginated(per_page, page_no, db.get_ref()).await?;
+        let fetched_supply_lines =
+            fetch_supply_lines_paginated(per_page, page_no, db.get_ref()).await?;
 
-        let total_states = State::count(db.get_ref())
+        let total_supply_lines = SupplyLine::count(db.get_ref())
             .await
-            .context("Failed to count the states from the database")?;
+            .context("Failed to count the supply lines from the database")?;
 
         let response = HttpResponse::build(StatusCode::OK)
             .content_type(ContentType::json())
             .json(PaginatedResponseDto {
-                data: fetched_states,
-                pagination: Pagination::new(total_states, page_no, per_page),
+                data: fetched_supply_lines,
+                pagination: Pagination::new(total_supply_lines, page_no, per_page),
             });
 
         return Ok(response);
     }
 
-    let fetched_states = fetch_all_states(db.get_ref()).await?;
+    let fetched_supply_lines = fetch_all_supply_lines(db.get_ref()).await?;
 
     let response = HttpResponse::build(StatusCode::OK)
         .content_type(ContentType::json())
         .json(NonPaginatedResponseDto {
-            data: fetched_states,
+            data: fetched_supply_lines,
         });
 
     Ok(response)
 }
 
-async fn fetch_all_states(db: &Pool<Postgres>) -> Result<Vec<State>, ServiceError> {
-    let fetched_states = State::select_all(db)
+async fn fetch_all_supply_lines(db: &Pool<Postgres>) -> Result<Vec<SupplyLine>, ServiceError> {
+    let fetched_supply_lines = SupplyLine::select_all(db)
         .await
-        .context("Failed to fetch the states from the database")?;
-    Ok(fetched_states)
+        .context("Failed to fetch the supply lines from the database")?;
+    Ok(fetched_supply_lines)
 }
 
-async fn fetch_states_paginated(
+async fn fetch_supply_lines_paginated(
     per_page: i64,
     page_no: i64,
     db: &Pool<Postgres>,
-) -> Result<Vec<State>, ServiceError> {
-    let fetched_states = State::paginate(per_page)
+) -> Result<Vec<SupplyLine>, ServiceError> {
+    let fetched_supply_lines = SupplyLine::paginate(per_page)
         .get_page(page_no, db)
         .await
-        .context("Failed to fetch the states from the database for the provided page")?;
+        .context("Failed to fetch the supply lines from the database for the provided page")?;
 
-    Ok(fetched_states.items)
+    Ok(fetched_supply_lines.items)
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(deny_unknown_fields)]
-struct StateManipulationParams {
+struct SupplyLineManipulationParams {
     id: i32,
 }
 
-#[get("/states/view/")]
-async fn fetch_state(
-    Query(params): Query<StateManipulationParams>,
+#[get("/supply-lines/view/")]
+async fn fetch_supply_line(
+    Query(params): Query<SupplyLineManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let fetched_state = State::select(params.id, db.get_ref())
+    let fetched_supply_line = SupplyLine::select(params.id, db.get_ref())
         .await
         .map_err(|err| match &err {
             sqlx::Error::RowNotFound => {
-                ServiceError::ResourceNotFound("state".to_string(), anyhow!(err))
+                ServiceError::ResourceNotFound("supply line".to_string(), anyhow!(err))
             }
             _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the state from the database"),
+                anyhow!(err).context("Failed to fetch the supply line from the database"),
             ),
         })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: fetched_state,
+        data: fetched_supply_line,
     }))
 }
 
@@ -167,102 +164,94 @@ async fn fetch_state(
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 #[serde(default)]
-struct UpdateStatePartiallyPayload {
+struct UpdateSupplyLinePartiallyPayload {
     name: MaybeAbsent<String>,
 }
 
-#[patch("/states/")]
-async fn update_state_partially(
-    Query(params): Query<StateManipulationParams>,
-    Json(payload): Json<UpdateStatePartiallyPayload>,
+#[patch("/supply-lines/")]
+async fn update_supply_line_partially(
+    Query(params): Query<SupplyLineManipulationParams>,
+    Json(payload): Json<UpdateSupplyLinePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let state_to_update =
-        State::select(params.id, db.get_ref())
+    let city_to_update =
+        SupplyLine::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("state".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("supply line".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the state to update from the database"),
+                    anyhow!(err).context("Failed to fetch the city to update from the database"),
                 ),
             })?;
 
-    let updated_state = UpdateState {
+    let updated_supply_line = UpdateSupplyLine {
         name: payload.name.into(),
     }
-    .update(state_to_update, db.get_ref())
+    .update(city_to_update, db.get_ref())
     .await
-    .map_err(|err| match &err {
-        _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to update the state from the database"),
-        ),
-    })?;
+    .context("Failed to update the supply line from the database")?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: updated_state,
+        data: updated_supply_line,
     }))
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct UpdateStateCompletelyPayload {
+struct UpdateSupplyLineCompletelyPayload {
     name: String,
 }
 
-#[put("/states/")]
-async fn update_state_completely(
-    Query(params): Query<StateManipulationParams>,
-    Json(payload): Json<UpdateStateCompletelyPayload>,
+#[put("/supply-lines/")]
+async fn update_supply_line_completely(
+    Query(params): Query<SupplyLineManipulationParams>,
+    Json(payload): Json<UpdateSupplyLineCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let state_to_update =
-        State::select(params.id, db.get_ref())
+    let city_to_update =
+        SupplyLine::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("state".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("supply line".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the state to update from the database"),
+                    anyhow!(err).context("Failed to fetch the city to update from the database"),
                 ),
             })?;
 
-    let updated_state = UpdateState {
+    let updated_supply_line = UpdateSupplyLine {
         name: Some(payload.name),
     }
-    .update(state_to_update, db.get_ref())
+    .update(city_to_update, db.get_ref())
     .await
-    .map_err(|err| match &err {
-        _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to update the state from the database"),
-        ),
-    })?;
+    .context("Failed to update the supply line from the database")?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: updated_state,
+        data: updated_supply_line,
     }))
 }
 
-#[delete("/states/")]
-async fn delete_state(
-    Query(params): Query<StateManipulationParams>,
+#[delete("/supply-lines/")]
+async fn delete_supply_line(
+    Query(params): Query<SupplyLineManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let deleted_state = State::delete(params.id, db.get_ref())
+    let deleted_supply_line = SupplyLine::delete(params.id, db.get_ref())
         .await
         .map_err(|err| match &err {
             sqlx::Error::RowNotFound => {
-                ServiceError::ResourceNotFound("state".to_string(), anyhow!(err))
+                ServiceError::ResourceNotFound("supply line".to_string(), anyhow!(err))
             }
             _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to get the state to delete from the database"),
+                anyhow!(err).context("Failed to fetch the supply line to delete from the database"),
             ),
         })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: deleted_state,
+        data: deleted_supply_line,
     }))
 }
