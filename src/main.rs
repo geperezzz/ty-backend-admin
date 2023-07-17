@@ -47,6 +47,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .configure(roles::configure)
             .configure(supply_lines::configure)
             .service(web::scope("/products").configure(products::configure))
+            .service(web::scope("/staff").configure(staff::configure))
             .service(web::scope("/activities").configure(activities::configure))
     })
     .bind(("localhost", 8080))
