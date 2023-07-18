@@ -5,6 +5,10 @@ CREATE TABLE vehicles (
         FOREIGN KEY (model_id) REFERENCES vehicle_models (id)
             ON UPDATE CASCADE
             ON DELETE RESTRICT,
+    CONSTRAINT vehicles_owner_national_id_fk
+        FOREIGN KEY (owner_national_id) REFERENCES clients (national_id)
+            ON UPDATE CASCADE
+            ON DELETE RESTRICT,
     plate TEXT NOT NULL,
     brand TEXT NOT NULL,
     model_id INTEGER NOT NULL,
