@@ -3,7 +3,7 @@ use actix_web::{
     http::{header::ContentType, StatusCode},
     patch, post, put,
     web::{Data, Json, Query, ServiceConfig},
-    HttpResponse, Responder, dev::Payload,
+    HttpResponse, Responder
 };
 use anyhow::{anyhow, Context};
 use serde::Deserialize;
@@ -52,7 +52,17 @@ async fn create_dealership(
     }
     .insert(db.get_ref())
     .await
-    .context("Failed to insert the dealership into the database")?;
+    .map_err(|err| match &err {
+        sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
+            ServiceError::InvalidUpdateError(
+                "The specified cityNumber, stateId or managerNationalId does not exist".to_string(),
+                anyhow!(err),
+            )
+        }
+        _ => ServiceError::UnexpectedError(
+            anyhow!(err).context("Failed to insert the dealership into the database"),
+        ),
+    })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: created_dealership,
@@ -196,7 +206,7 @@ async fn update_dealership_partially(
                     ServiceError::ResourceNotFound("dealership".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the city to update from the database"),
+                    anyhow!(err).context("Failed to fetch the dealership to update from the database"),
                 ),
             })?;
 
@@ -212,7 +222,7 @@ async fn update_dealership_partially(
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified cityNumber, stateId, managerNationalId does not exist".to_string(),
+                "The specified cityNumber, stateId or managerNationalId does not exist".to_string(),
                 anyhow!(err),
             )
         }
@@ -230,7 +240,11 @@ async fn update_dealership_partially(
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 struct UpdateDealershipCompletelyPayload {
+    rif: String,
     name: String,
+    city_number: i32,
+    state_id: i32,
+    manager_national_id: String,
 }
 
 #[put("/")]
@@ -240,23 +254,37 @@ async fn update_dealership_completely(
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
     let city_to_update =
-        Dealership::select(params.id, db.get_ref())
+        Dealership::select(params.rif, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
                     ServiceError::ResourceNotFound("dealership".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the city to update from the database"),
+                    anyhow!(err).context("Failed to fetch the dealership to update from the database"),
                 ),
             })?;
 
     let updated_dealership = UpdateDealership {
+        rif: Some(payload.rif),
         name: Some(payload.name),
+        city_number: Some(payload.city_number),
+        state_id: Some(payload.state_id),
+        manager_national_id: Some(payload.manager_national_id),
     }
     .update(city_to_update, db.get_ref())
     .await
-    .context("Failed to update the dealership from the database")?;
+    .map_err(|err| match &err {
+        sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
+            ServiceError::InvalidUpdateError(
+                "The specified cityNumber, stateId or managerNationalId does not exist".to_string(),
+                anyhow!(err),
+            )
+        }
+        _ => ServiceError::UnexpectedError(
+            anyhow!(err).context("Failed to update the dealership from the database"),
+        ),
+    })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: updated_dealership,
@@ -268,7 +296,7 @@ async fn delete_dealership(
     Query(params): Query<DealershipManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let deleted_dealership = Dealership::delete(params.id, db.get_ref())
+    let deleted_dealership = Dealership::delete(params.rif, db.get_ref())
         .await
         .map_err(|err| match &err {
             sqlx::Error::RowNotFound => {
