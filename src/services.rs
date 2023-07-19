@@ -11,3 +11,4 @@ pub mod supply_lines;
 pub mod vehicles;
 pub mod staff;
 pub mod activities;
+pub mod dealerships;

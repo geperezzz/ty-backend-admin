@@ -174,7 +174,7 @@ async fn update_role_partially(
     Json(payload): Json<UpdateRolePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update = Role::select(params.id, db.get_ref())
+    let role_to_update = Role::select(params.id, db.get_ref())
         .await
         .map_err(|err| match &err {
             sqlx::Error::RowNotFound => {
@@ -189,7 +189,7 @@ async fn update_role_partially(
         name: payload.name.into(),
         description: payload.description.into(),
     }
-    .update(city_to_update, db.get_ref())
+    .update(role_to_update, db.get_ref())
     .await
     .context("Failed to update the role from the database")?;
 
@@ -210,7 +210,7 @@ async fn update_role_completely(
     Json(payload): Json<UpdateRoleCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update = Role::select(params.id, db.get_ref())
+    let role_to_update = Role::select(params.id, db.get_ref())
         .await
         .map_err(|err| match &err {
             sqlx::Error::RowNotFound => {
@@ -225,7 +225,7 @@ async fn update_role_completely(
         name: Some(payload.name),
         description: Some(payload.description),
     }
-    .update(city_to_update, db.get_ref())
+    .update(role_to_update, db.get_ref())
     .await
     .context("Failed to update the role from the database")?;
 
