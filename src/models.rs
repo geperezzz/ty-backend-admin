@@ -8,3 +8,4 @@ pub mod vehicle;
 pub mod employee;
 pub mod vehicle_model;
 pub mod activity;
+pub mod dealership;
