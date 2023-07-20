@@ -15,7 +15,7 @@ use crate::{
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
-    utils::{deserialization::MaybeAbsent, pagination::Paginable},
+    utils::{deserialization::{MaybeAbsent, MaybeNull}, pagination::Paginable},
 };
 
 pub fn configure(configuration: &mut ServiceConfig) {
@@ -38,6 +38,8 @@ struct CreateEmployeePayload {
     secondary_phone_no: String,
     email: String,
     address: String,
+    employer_dealership_rif: String,
+    helped_dealership_rif: Option<String>,
     role_id: i32,
     salary: BigDecimal,
 }
@@ -54,6 +56,8 @@ async fn create_employee(
         secondary_phone_no: payload.secondary_phone_no,
         email: payload.email,
         address: payload.address,
+        employer_dealership_rif: payload.employer_dealership_rif,
+        helped_dealership_rif: payload.helped_dealership_rif,
         role_id: payload.role_id,
         salary: payload.salary,
     }
@@ -68,7 +72,7 @@ async fn create_employee(
         }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidCreateError(
-                "The specified roleId does not exist".to_string(),
+                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist".to_string(),
                 anyhow!(err),
             )
         }
@@ -203,6 +207,8 @@ struct UpdateEmployeePartiallyPayload {
     secondary_phone_no: MaybeAbsent<String>,
     email: MaybeAbsent<String>,
     address: MaybeAbsent<String>,
+    employer_dealership_rif: MaybeAbsent<String>,
+    helped_dealership_rif: MaybeAbsent<MaybeNull<String>>,
     role_id: MaybeAbsent<i32>,
     salary: MaybeAbsent<BigDecimal>,
 }
@@ -213,7 +219,7 @@ async fn update_employee_partially(
     Json(payload): Json<UpdateEmployeePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update = Employee::select(params.national_id, db.get_ref())
+    let employee_to_update = Employee::select(params.national_id, db.get_ref())
         .await
         .map_err(|err| match &err {
             sqlx::Error::RowNotFound => {
@@ -231,10 +237,12 @@ async fn update_employee_partially(
         secondary_phone_no: payload.secondary_phone_no.into(),
         email: payload.email.into(),
         address: payload.address.into(),
+        employer_dealership_rif: payload.employer_dealership_rif.into(),
+        helped_dealership_rif: payload.helped_dealership_rif.into(),
         role_id: payload.role_id.into(),
         salary: payload.salary.into(),
     }
-    .update(city_to_update, db.get_ref())
+    .update(employee_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
@@ -245,7 +253,7 @@ async fn update_employee_partially(
         }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified roleId does not exist".to_string(),
+                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist".to_string(),
                 anyhow!(err),
             )
         }
@@ -269,6 +277,8 @@ struct UpdateEmployeeCompletelyPayload {
     secondary_phone_no: String,
     email: String,
     address: String,
+    employer_dealership_rif: String,
+    helped_dealership_rif: MaybeNull<String>,
     role_id: i32,
     salary: BigDecimal,
 }
@@ -279,7 +289,7 @@ async fn update_employee_completely(
     Json(payload): Json<UpdateEmployeeCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update = Employee::select(params.national_id, db.get_ref())
+    let employee_to_update = Employee::select(params.national_id, db.get_ref())
         .await
         .map_err(|err| match &err {
             sqlx::Error::RowNotFound => {
@@ -297,10 +307,12 @@ async fn update_employee_completely(
         secondary_phone_no: Some(payload.secondary_phone_no),
         email: Some(payload.email),
         address: Some(payload.address),
+        employer_dealership_rif: Some(payload.employer_dealership_rif),
+        helped_dealership_rif: Some(payload.helped_dealership_rif.into()),
         role_id: Some(payload.role_id),
         salary: Some(payload.salary),
     }
-    .update(city_to_update, db.get_ref())
+    .update(employee_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
@@ -311,7 +323,7 @@ async fn update_employee_completely(
         }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified roleId does not exist".to_string(),
+                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist".to_string(),
                 anyhow!(err),
             )
         }

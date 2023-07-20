@@ -174,7 +174,7 @@ async fn update_supply_line_partially(
     Json(payload): Json<UpdateSupplyLinePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update =
+    let supply_line_to_update =
         SupplyLine::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
@@ -182,14 +182,14 @@ async fn update_supply_line_partially(
                     ServiceError::ResourceNotFound("supply line".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the city to update from the database"),
+                    anyhow!(err).context("Failed to fetch the supply line to update from the database"),
                 ),
             })?;
 
     let updated_supply_line = UpdateSupplyLine {
         name: payload.name.into(),
     }
-    .update(city_to_update, db.get_ref())
+    .update(supply_line_to_update, db.get_ref())
     .await
     .context("Failed to update the supply line from the database")?;
 
@@ -211,7 +211,7 @@ async fn update_supply_line_completely(
     Json(payload): Json<UpdateSupplyLineCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update =
+    let supply_line_to_update =
         SupplyLine::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
@@ -219,14 +219,14 @@ async fn update_supply_line_completely(
                     ServiceError::ResourceNotFound("supply line".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the city to update from the database"),
+                    anyhow!(err).context("Failed to fetch the supply line to update from the database"),
                 ),
             })?;
 
     let updated_supply_line = UpdateSupplyLine {
         name: Some(payload.name),
     }
-    .update(city_to_update, db.get_ref())
+    .update(supply_line_to_update, db.get_ref())
     .await
     .context("Failed to update the supply line from the database")?;
 
