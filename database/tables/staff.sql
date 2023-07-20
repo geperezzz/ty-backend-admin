@@ -11,6 +11,8 @@ CREATE TABLE staff (
     secondary_phone_no TEXT NOT NULL,
     email email NOT NULL,
     address TEXT NOT NULL,
+    employer_dealership_rif rif NOT NULL,
+    helped_dealership_rif rif,
     role_id INTEGER NOT NULL,
     salary NUMERIC NOT NULL
         CONSTRAINT valid_salary

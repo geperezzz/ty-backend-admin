@@ -6,12 +6,12 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use anyhow::{anyhow, Context};
+use bigdecimal::BigDecimal;
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
-use bigdecimal::BigDecimal;
 
 use crate::{
-    models::vehicle_model::{VehicleModel, InsertVehicleModel, UpdateVehicleModel},
+    models::vehicle_model::{InsertVehicleModel, UpdateVehicleModel, VehicleModel},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
@@ -103,7 +103,8 @@ async fn fetch_vehicle_models(
             ));
         }
 
-        let fetched_vehicle_models = fetch_vehicle_models_paginated(per_page, page_no, db.get_ref()).await?;
+        let fetched_vehicle_models =
+            fetch_vehicle_models_paginated(per_page, page_no, db.get_ref()).await?;
 
         let total_vehicle_models = VehicleModel::count(db.get_ref())
             .await
@@ -205,7 +206,8 @@ async fn update_vehicle_model_partially(
                 ServiceError::ResourceNotFound("vehicle model".to_string(), anyhow!(err))
             }
             _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the vehicle model to update from the database"),
+                anyhow!(err)
+                    .context("Failed to fetch the vehicle model to update from the database"),
             ),
         })?;
 
@@ -257,7 +259,8 @@ async fn update_vehicle_model_completely(
                 ServiceError::ResourceNotFound("vehicle model".to_string(), anyhow!(err))
             }
             _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the vehicle model to update from the database"),
+                anyhow!(err)
+                    .context("Failed to fetch the vehicle model to update from the database"),
             ),
         })?;
 

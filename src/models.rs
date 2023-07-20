@@ -1,11 +1,11 @@
+pub mod activity;
 pub mod city;
 pub mod client;
+pub mod dealership;
+pub mod employee;
 pub mod product;
 pub mod role;
 pub mod state;
 pub mod supply_line;
 pub mod vehicle;
-pub mod employee;
 pub mod vehicle_model;
-pub mod activity;
-pub mod dealership;

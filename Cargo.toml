@@ -17,5 +17,5 @@ serde = { version = "1.0.166", features = ["derive"] }
 serde_with = "3.0.0"
 sqlx = { version = "0.7.0", features = ["postgres", "runtime-tokio", "bigdecimal", "time"] }
 thiserror = "1.0.43"
-time = { version = "0.3.23", features = ["serde-human-readable"] }
+time = { version = "0.3.23", features = ["serde-human-readable", "macros"] }
 tracing-actix-web = "0.7.5"

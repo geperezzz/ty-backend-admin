@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{Executor, Postgres};
-use bigdecimal::BigDecimal;
 
 use crate::utils::pagination::{Page, Pages, Paginable};
 

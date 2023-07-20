@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{Executor, Postgres};
-use bigdecimal::BigDecimal;
 
 use crate::utils::pagination::{Page, Pages, Paginable};
 
@@ -227,7 +227,9 @@ impl UpdateVehicleModel {
         let new_octane_rating = self.octane_rating.unwrap_or(target.octane_rating);
         let new_gearbox_oil_type = self.gearbox_oil_type.unwrap_or(target.gearbox_oil_type);
         let new_engine_oil_type = self.engine_oil_type.unwrap_or(target.engine_oil_type);
-        let new_engine_coolat_type = self.engine_coolant_type.unwrap_or(target.engine_coolant_type);
+        let new_engine_coolat_type = self
+            .engine_coolant_type
+            .unwrap_or(target.engine_coolant_type);
 
         sqlx::query_as!(
             VehicleModel,

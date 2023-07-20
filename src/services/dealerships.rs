@@ -3,14 +3,14 @@ use actix_web::{
     http::{header::ContentType, StatusCode},
     patch, post, put,
     web::{Data, Json, Query, ServiceConfig},
-    HttpResponse, Responder
+    HttpResponse, Responder,
 };
 use anyhow::{anyhow, Context};
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    models::dealership::{InsertDealership, Dealership, UpdateDealership},
+    models::dealership::{Dealership, InsertDealership, UpdateDealership},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
@@ -43,12 +43,12 @@ async fn create_dealership(
     Json(payload): Json<CreateDealershipPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let created_dealership = InsertDealership { 
+    let created_dealership = InsertDealership {
         rif: payload.rif,
         name: payload.name,
         city_number: payload.city_number,
         state_id: payload.state_id,
-        manager_national_id: payload.manager_national_id, 
+        manager_national_id: payload.manager_national_id,
     }
     .insert(db.get_ref())
     .await
@@ -206,7 +206,8 @@ async fn update_dealership_partially(
                     ServiceError::ResourceNotFound("dealership".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the dealership to update from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the dealership to update from the database"),
                 ),
             })?;
 
@@ -253,17 +254,16 @@ async fn update_dealership_completely(
     Json(payload): Json<UpdateDealershipCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let city_to_update =
-        Dealership::select(params.rif, db.get_ref())
-            .await
-            .map_err(|err| match &err {
-                sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("dealership".to_string(), anyhow!(err))
-                }
-                _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the dealership to update from the database"),
-                ),
-            })?;
+    let city_to_update = Dealership::select(params.rif, db.get_ref())
+        .await
+        .map_err(|err| match &err {
+            sqlx::Error::RowNotFound => {
+                ServiceError::ResourceNotFound("dealership".to_string(), anyhow!(err))
+            }
+            _ => ServiceError::UnexpectedError(
+                anyhow!(err).context("Failed to fetch the dealership to update from the database"),
+            ),
+        })?;
 
     let updated_dealership = UpdateDealership {
         rif: Some(payload.rif),
