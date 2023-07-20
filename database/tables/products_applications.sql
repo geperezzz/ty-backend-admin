@@ -16,7 +16,7 @@ CREATE TABLE products_applications (
     employee_national_id national_id NOT NULL,
     application_count INTEGER NOT NULL
         CONSTRAINT valid_application_count
-            CHECK (application_count >= 0),
+            CHECK (application_count > 0),
     product_cost NUMERIC NOT NULL
         CONSTRAINT valid_product_cost
             CHECK (product_cost >= 0)
