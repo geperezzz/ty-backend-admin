@@ -31,5 +31,6 @@ BEGIN;
 
 \ir ./triggers/trigger_generate_invoice.sql
 \ir ./triggers/trigger_insert_dealership_into_order.sql
+\ir ./triggers/trigger_update_stock.sql
 
 COMMIT;
