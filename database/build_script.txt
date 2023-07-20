@@ -29,4 +29,7 @@ BEGIN;
 \ir ./tables/discounts.sql
 \ir ./tables/recommended_services.sql
 
+\ir ./triggers/trigger_generate_invoice.sql
+\ir ./triggers/trigger_insert_dealership_into_order.sql
+
 COMMIT;

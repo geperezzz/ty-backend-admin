@@ -11,7 +11,7 @@ use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    models::activity::{InsertActivity, Activity, UpdateActivity},
+    models::activity::{Activity, InsertActivity, UpdateActivity},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
@@ -34,7 +34,7 @@ pub fn configure(configuration: &mut ServiceConfig) {
 struct CreateActivityPayload {
     service_id: i32,
     description: String,
-    price_per_hour: BigDecimal
+    price_per_hour: BigDecimal,
 }
 
 #[post("/")]
@@ -42,10 +42,10 @@ async fn create_activity(
     Json(payload): Json<CreateActivityPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let created_activity = InsertActivity { 
+    let created_activity = InsertActivity {
         service_id: payload.service_id,
         description: payload.description,
-        price_per_hour: payload.price_per_hour 
+        price_per_hour: payload.price_per_hour,
     }
     .insert(db.get_ref())
     .await
@@ -101,7 +101,8 @@ async fn fetch_activities(
             ));
         }
 
-        let fetched_activities = fetch_activities_paginated(per_page, page_no, db.get_ref()).await?;
+        let fetched_activities =
+            fetch_activities_paginated(per_page, page_no, db.get_ref()).await?;
 
         let total_activities = Activity::count(db.get_ref())
             .await
@@ -153,7 +154,7 @@ async fn fetch_activities_paginated(
 #[serde(deny_unknown_fields)]
 struct ActivityManipulationParams {
     activity_number: i32,
-    service_id: i32
+    service_id: i32,
 }
 
 #[get("/view/")]
@@ -161,16 +162,17 @@ async fn fetch_activity(
     Query(params): Query<ActivityManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let fetched_activity = Activity::select(params.activity_number, params.service_id, db.get_ref())
-        .await
-        .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => {
-                ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
-            }
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the activity from the database"),
-            ),
-        })?;
+    let fetched_activity =
+        Activity::select(params.activity_number, params.service_id, db.get_ref())
+            .await
+            .map_err(|err| match &err {
+                sqlx::Error::RowNotFound => {
+                    ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
+                }
+                _ => ServiceError::UnexpectedError(
+                    anyhow!(err).context("Failed to fetch the activity from the database"),
+                ),
+            })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: fetched_activity,
@@ -184,7 +186,7 @@ async fn fetch_activity(
 struct UpdateActivityPartiallyPayload {
     service_id: MaybeAbsent<i32>,
     description: MaybeAbsent<String>,
-    price_per_hour: MaybeAbsent<BigDecimal>
+    price_per_hour: MaybeAbsent<BigDecimal>,
 }
 
 #[patch("/")]
@@ -201,14 +203,15 @@ async fn update_activity_partially(
                     ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the activity to update from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the activity to update from the database"),
                 ),
             })?;
 
     let updated_activity = UpdateActivity {
         service_id: payload.service_id.into(),
         description: payload.description.into(),
-        price_per_hour: payload.price_per_hour.into() 
+        price_per_hour: payload.price_per_hour.into(),
     }
     .update(activity_to_update, db.get_ref())
     .await
@@ -235,7 +238,7 @@ async fn update_activity_partially(
 struct UpdateActivityCompletelyPayload {
     service_id: i32,
     description: String,
-    price_per_hour: BigDecimal
+    price_per_hour: BigDecimal,
 }
 
 #[put("/")]
@@ -252,14 +255,15 @@ async fn update_activity_completely(
                     ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the activity to update from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the activity to update from the database"),
                 ),
             })?;
 
     let updated_activity = UpdateActivity {
         service_id: Some(payload.service_id),
         description: Some(payload.description),
-        price_per_hour: Some(payload.price_per_hour)
+        price_per_hour: Some(payload.price_per_hour),
     }
     .update(activity_to_update, db.get_ref())
     .await
@@ -285,16 +289,17 @@ async fn delete_activity(
     Query(params): Query<ActivityManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let deleted_activity = Activity::delete(params.activity_number, params.service_id, db.get_ref())
-        .await
-        .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => {
-                ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
-            }
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to get the activity to delete from the database"),
-            ),
-        })?;
+    let deleted_activity =
+        Activity::delete(params.activity_number, params.service_id, db.get_ref())
+            .await
+            .map_err(|err| match &err {
+                sqlx::Error::RowNotFound => {
+                    ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
+                }
+                _ => ServiceError::UnexpectedError(
+                    anyhow!(err).context("Failed to get the activity to delete from the database"),
+                ),
+            })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: deleted_activity,

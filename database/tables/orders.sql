@@ -16,6 +16,7 @@ CREATE TABLE orders (
     estimated_checkout_timestamp TIMESTAMP,
     checkout_timestamp TIMESTAMP,
     analist_national_id national_id NOT NULL,
+    dealership_rif rif NOT NULL,
     vehicle_caretaker_national_id national_id,
     vehicle_caretaker_name TEXT,
     vehicle_kilometrage NUMERIC NOT NULL

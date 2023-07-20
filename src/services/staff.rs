@@ -6,9 +6,9 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use anyhow::{anyhow, Context};
+use bigdecimal::BigDecimal;
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
-use bigdecimal::BigDecimal;
 
 use crate::{
     models::employee::{Employee, InsertEmployee, UpdateEmployee},
@@ -65,19 +65,21 @@ async fn create_employee(
                 "The specified nationalId already exists".to_string(),
                 anyhow!(err),
             )
-        },
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidCreateError(
                 "The specified roleId does not exist".to_string(),
                 anyhow!(err),
             )
-        },
+        }
         _ => ServiceError::UnexpectedError(
             anyhow!(err).context("Failed to insert the employee into the database"),
         ),
     })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: created_employee }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: created_employee,
+    }))
 }
 
 #[get("/")]
@@ -166,7 +168,7 @@ async fn fetch_staff_paginated(
 #[serde(rename_all = "kebab-case")]
 #[serde(deny_unknown_fields)]
 struct EmployeeManipulationParams {
-    national_id: String
+    national_id: String,
 }
 
 #[get("/view/")]
@@ -185,7 +187,9 @@ async fn fetch_employee(
             ),
         })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: fetched_employee }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: fetched_employee,
+    }))
 }
 
 #[derive(Deserialize, Default)]
@@ -238,7 +242,7 @@ async fn update_employee_partially(
                 "The specified nationalId already exists".to_string(),
                 anyhow!(err),
             )
-        },
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified roleId does not exist".to_string(),
@@ -250,7 +254,9 @@ async fn update_employee_partially(
         ),
     })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: updated_employee }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: updated_employee,
+    }))
 }
 
 #[derive(Deserialize)]
@@ -302,7 +308,7 @@ async fn update_employee_completely(
                 "The specified nationalId already exists".to_string(),
                 anyhow!(err),
             )
-        },
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified roleId does not exist".to_string(),
@@ -314,7 +320,9 @@ async fn update_employee_completely(
         ),
     })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: updated_employee }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: updated_employee,
+    }))
 }
 
 #[delete("/")]
@@ -333,5 +341,7 @@ async fn delete_employee(
             ),
         })?;
 
-    Ok(Json(NonPaginatedResponseDto { data: deleted_employee }))
+    Ok(Json(NonPaginatedResponseDto {
+        data: deleted_employee,
+    }))
 }
