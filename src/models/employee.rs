@@ -3,9 +3,7 @@ use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{Executor, Postgres};
 
-use crate::utils::pagination::{Page, Pages, Paginable};
-
-use super::role;
+use crate::utils::{pagination::{Page, Pages, Paginable} };
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -16,6 +14,8 @@ pub struct Employee {
     pub secondary_phone_no: String,
     pub email: String,
     pub address: String,
+    pub employer_dealership_rif: String,
+    pub helped_dealership_rif: Option<String>,
     pub role_id: i32,
     pub salary: BigDecimal,
 }
@@ -35,6 +35,8 @@ impl Employee {
                 secondary_phone_no,
                 email,
                 address,
+                employer_dealership_rif,
+                helped_dealership_rif,
                 role_id,
                 salary
             FROM staff
@@ -59,6 +61,8 @@ impl Employee {
                 secondary_phone_no,
                 email,
                 address,
+                employer_dealership_rif,
+                helped_dealership_rif,
                 role_id,
                 salary
             FROM staff
@@ -97,6 +101,8 @@ impl Employee {
                 secondary_phone_no,
                 email,
                 address,
+                employer_dealership_rif,
+                helped_dealership_rif,
                 role_id,
                 salary
             "#,
@@ -124,6 +130,8 @@ impl Paginable<Employee> for Employee {
                     secondary_phone_no,
                     email,
                     address,
+                    employer_dealership_rif,
+                    helped_dealership_rif,
                     role_id,
                     salary
                 FROM staff
@@ -152,6 +160,8 @@ pub struct InsertEmployee {
     pub secondary_phone_no: String,
     pub email: String,
     pub address: String,
+    pub employer_dealership_rif: String,
+    pub helped_dealership_rif: Option<String>,
     pub role_id: i32,
     pub salary: BigDecimal,
 }
@@ -172,7 +182,9 @@ impl InsertEmployee {
                 email,
                 address,
                 role_id,
-                salary
+                salary,
+                employer_dealership_rif,
+                helped_dealership_rif
             )
             VALUES (
                 $1,
@@ -182,7 +194,9 @@ impl InsertEmployee {
                 $5,
                 $6,
                 $7,
-                $8
+                $8,
+                $9,
+                $10
             )
             RETURNING
                 national_id,
@@ -191,6 +205,8 @@ impl InsertEmployee {
                 secondary_phone_no,
                 email,
                 address,
+                employer_dealership_rif,
+                helped_dealership_rif,
                 role_id,
                 salary
             "#,
@@ -202,6 +218,8 @@ impl InsertEmployee {
             self.address,
             self.role_id,
             self.salary,
+            self.employer_dealership_rif as _,
+            self.helped_dealership_rif as _
         )
         .fetch_one(connection)
         .await
@@ -216,6 +234,8 @@ pub struct UpdateEmployee {
     pub secondary_phone_no: Option<String>,
     pub email: Option<String>,
     pub address: Option<String>,
+    pub employer_dealership_rif: Option<String>,
+    pub helped_dealership_rif: Option<Option<String>>,
     pub role_id: Option<i32>,
     pub salary: Option<BigDecimal>,
 }
@@ -234,6 +254,8 @@ impl UpdateEmployee {
         let new_address = self.address.unwrap_or(target.address);
         let new_role_id = self.role_id.unwrap_or(target.role_id);
         let new_salary = self.salary.unwrap_or(target.salary);
+        let new_employer_dealership_rif = self.employer_dealership_rif.as_ref().unwrap_or(&target.employer_dealership_rif);
+        let new_helped_dealership_rif = self.helped_dealership_rif.unwrap_or(target.helped_dealership_rif);
 
         sqlx::query_as!(
             Employee,
@@ -247,8 +269,10 @@ impl UpdateEmployee {
                 email = $5,
                 address = $6,
                 role_id = $7,
-                salary = $8
-            WHERE national_id = $9
+                salary = $8,
+                employer_dealership_rif = $9,
+                helped_dealership_rif = $10
+            WHERE national_id = $11
             RETURNING
                 national_id,
                 full_name,
@@ -256,6 +280,8 @@ impl UpdateEmployee {
                 secondary_phone_no,
                 email,
                 address,
+                employer_dealership_rif,
+                helped_dealership_rif,
                 role_id,
                 salary
             "#,
@@ -267,6 +293,8 @@ impl UpdateEmployee {
             new_address,
             new_role_id,
             new_salary,
+            new_employer_dealership_rif as _,
+            new_helped_dealership_rif as _,
             target.national_id,
         )
         .fetch_one(connection)

@@ -13,5 +13,5 @@ CREATE TABLE dealerships (
     name TEXT NOT NULL,
     city_number INTEGER NOT NULL,
     state_id INTEGER NOT NULL,
-    manager_national_id national_id NOT NULL
+    manager_national_id national_id UNIQUE
 );

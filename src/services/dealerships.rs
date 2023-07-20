@@ -14,7 +14,7 @@ use crate::{
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
-    utils::{deserialization::MaybeAbsent, pagination::Paginable},
+    utils::{deserialization::{MaybeAbsent, MaybeNull}, pagination::Paginable},
 };
 
 pub fn configure(configuration: &mut ServiceConfig) {
@@ -35,7 +35,7 @@ struct CreateDealershipPayload {
     name: String,
     city_number: i32,
     state_id: i32,
-    manager_national_id: String,
+    manager_national_id: MaybeNull<String>,
 }
 
 #[post("/")]
@@ -48,13 +48,19 @@ async fn create_dealership(
         name: payload.name,
         city_number: payload.city_number,
         state_id: payload.state_id,
-        manager_national_id: payload.manager_national_id,
+        manager_national_id: payload.manager_national_id.into(),
     }
     .insert(db.get_ref())
     .await
     .map_err(|err| match &err {
+        sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
+            ServiceError::InvalidCreateError(
+                "The specified rif already exists or the specified managerNationalId is already being used".to_string(), 
+                anyhow!(err),
+            )
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidUpdateError(
+            ServiceError::InvalidCreateError(
                 "The specified cityNumber, stateId or managerNationalId does not exist".to_string(),
                 anyhow!(err),
             )
@@ -221,6 +227,12 @@ async fn update_dealership_partially(
     .update(dealership_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
+        sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
+            ServiceError::InvalidUpdateError(
+                "The specified rif already exists or the specified managerNationalId is already being used".to_string(), 
+                anyhow!(err),
+            )
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified cityNumber, stateId or managerNationalId does not exist".to_string(),
@@ -275,6 +287,12 @@ async fn update_dealership_completely(
     .update(city_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
+        sqlx::Error::Database(db_err) if db_err.is_unique_violation() => {
+            ServiceError::InvalidUpdateError(
+                "The specified rif already exists or the specified managerNationalId is already being used".to_string(), 
+                anyhow!(err),
+            )
+        }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
                 "The specified cityNumber, stateId or managerNationalId does not exist".to_string(),

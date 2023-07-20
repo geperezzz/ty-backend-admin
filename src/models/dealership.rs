@@ -11,7 +11,7 @@ pub struct Dealership {
     pub name: String,
     pub city_number: i32,
     pub state_id: i32,
-    pub manager_national_id: String,
+    pub manager_national_id: Option<String>,
 }
 
 impl Dealership {
@@ -139,7 +139,7 @@ pub struct InsertDealership {
     pub name: String,
     pub city_number: i32,
     pub state_id: i32,
-    pub manager_national_id: String,
+    pub manager_national_id: Option<String>,
 }
 
 impl InsertDealership {
@@ -191,9 +191,11 @@ impl UpdateDealership {
         let new_name = self.name.unwrap_or(target.name);
         let new_city_number = self.city_number.unwrap_or(target.city_number);
         let new_state_id = self.state_id.unwrap_or(target.state_id);
-        let new_manager_national_id = self
-            .manager_national_id
-            .unwrap_or(target.manager_national_id);
+        let new_manager_national_id = if self.manager_national_id.is_some() {
+            self.manager_national_id
+        } else {
+            target.manager_national_id
+        };
 
         sqlx::query_as!(
             Dealership,
