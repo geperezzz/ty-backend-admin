@@ -25,3 +25,4 @@ pub mod no_show_clients;
 pub mod most_attended_vehicle_models;
 pub mod maintenance_schedules;
 pub mod services;
+pub mod activities_prices;

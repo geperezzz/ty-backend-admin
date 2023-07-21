@@ -10,3 +10,4 @@ pub mod supply_line;
 pub mod vehicle;
 pub mod vehicle_model;
 pub mod service;
+pub mod activity_price;
