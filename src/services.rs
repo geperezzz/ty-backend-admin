@@ -29,3 +29,4 @@ pub mod vehicle_models;
 pub mod vehicles;
 pub mod invoices;
 pub mod payments;
+pub mod stock;
