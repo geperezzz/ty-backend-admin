@@ -6,12 +6,12 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use anyhow::{anyhow, Context};
-use bigdecimal::BigDecimal;
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
+use time::Date;
 
 use crate::{
-    models::discount::{Discount, InsertDiscount, UpdateDiscount},
+    models::invoice::{Invoice, InsertInvoice, UpdateInvoice},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
@@ -20,54 +20,52 @@ use crate::{
 
 pub fn configure(configuration: &mut ServiceConfig) {
     configuration
-        .service(fetch_discounts)
-        .service(fetch_discount)
-        .service(create_discount)
-        .service(update_discount_partially)
-        .service(update_discount_completely)
-        .service(delete_discount);
+        .service(fetch_invoices)
+        .service(fetch_invoice)
+        .service(create_invoice)
+        .service(update_invoice_partially)
+        .service(update_invoice_completely)
+        .service(delete_invoice);
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct CreateDiscountPayload {
-    dealership_rif: String,
-    discount_percentage: BigDecimal,
-    required_annual_service_usage_count: i16,
+struct CreateInvoicePayload {
+    order_id: i32,
+    issue_date: Date
 }
 
 #[post("/")]
-async fn create_discount(
-    Json(payload): Json<CreateDiscountPayload>,
+async fn create_invoice(
+    Json(payload): Json<CreateInvoicePayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let created_discount = InsertDiscount {
-        dealership_rif: payload.dealership_rif,
-        discount_percentage: payload.discount_percentage,
-        required_annual_service_usage_count: payload.required_annual_service_usage_count,
+    let created_invoice = InsertInvoice {
+        order_id: payload.order_id,
+        issue_date: payload.issue_date,
     }
     .insert(db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidCreateError(
-                "The specified dealershipRif does not exist".to_string(),
+                "The specified orderId does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to insert the discount into the database"),
+            anyhow!(err).context("Failed to insert the invoice into the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: created_discount,
+        data: created_invoice,
     }))
 }
 
 #[get("/")]
-async fn fetch_discounts(
+async fn fetch_invoices(
     Query(pagination_params): Query<PaginationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<HttpResponse, ServiceError> {
@@ -101,80 +99,79 @@ async fn fetch_discounts(
             ));
         }
 
-        let fetched_discounts = fetch_discounts_paginated(per_page, page_no, db.get_ref()).await?;
+        let fetched_invoices = fetch_invoices_paginated(per_page, page_no, db.get_ref()).await?;
 
-        let total_discounts = Discount::count(db.get_ref())
+        let total_invoices = Invoice::count(db.get_ref())
             .await
-            .context("Failed to count the discounts from the database")?;
+            .context("Failed to count the invoices from the database")?;
 
         let response = HttpResponse::build(StatusCode::OK)
             .content_type(ContentType::json())
             .json(PaginatedResponseDto {
-                data: fetched_discounts,
-                pagination: Pagination::new(total_discounts, page_no, per_page),
+                data: fetched_invoices,
+                pagination: Pagination::new(total_invoices, page_no, per_page),
             });
 
         return Ok(response);
     }
 
-    let fetched_discounts = fetch_all_discounts(db.get_ref()).await?;
+    let fetched_invoices = fetch_all_invoices(db.get_ref()).await?;
 
     let response = HttpResponse::build(StatusCode::OK)
         .content_type(ContentType::json())
         .json(NonPaginatedResponseDto {
-            data: fetched_discounts,
+            data: fetched_invoices,
         });
 
     Ok(response)
 }
 
-async fn fetch_all_discounts(db: &Pool<Postgres>) -> Result<Vec<Discount>, ServiceError> {
-    let fetched_discounts = Discount::select_all(db)
+async fn fetch_all_invoices(db: &Pool<Postgres>) -> Result<Vec<Invoice>, ServiceError> {
+    let fetched_invoices = Invoice::select_all(db)
         .await
-        .context("Failed to fetch the discounts from the database")?;
-    Ok(fetched_discounts)
+        .context("Failed to fetch the invoices from the database")?;
+    Ok(fetched_invoices)
 }
 
-async fn fetch_discounts_paginated(
+async fn fetch_invoices_paginated(
     per_page: i64,
     page_no: i64,
     db: &Pool<Postgres>,
-) -> Result<Vec<Discount>, ServiceError> {
-    let fetched_discounts = Discount::paginate(per_page)
+) -> Result<Vec<Invoice>, ServiceError> {
+    let fetched_invoices = Invoice::paginate(per_page)
         .get_page(page_no, db)
         .await
-        .context("Failed to fetch the discounts from the database for the provided page")?;
+        .context("Failed to fetch the invoices from the database for the provided page")?;
 
-    Ok(fetched_discounts.items)
+    Ok(fetched_invoices.items)
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(deny_unknown_fields)]
-struct DiscountManipulationParams {
-    discount_number: i32,
-    dealership_rif: String,
+struct InvoiceManipulationParams {
+    id: i32
 }
 
 #[get("/view/")]
-async fn fetch_discount(
-    Query(params): Query<DiscountManipulationParams>,
+async fn fetch_invoice(
+    Query(params): Query<InvoiceManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let fetched_discount =
-        Discount::select(params.discount_number, params.dealership_rif, db.get_ref())
+    let fetched_invoice =
+        Invoice::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("discount".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("invoice".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the discount from the database"),
+                    anyhow!(err).context("Failed to fetch the invoice from the database"),
                 ),
             })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: fetched_discount,
+        data: fetched_invoice,
     }))
 }
 
@@ -182,126 +179,122 @@ async fn fetch_discount(
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 #[serde(default)]
-struct UpdateDiscountPartiallyPayload {
-    dealership_rif: MaybeAbsent<String>,
-    discount_percentage: MaybeAbsent<BigDecimal>,
-    required_annual_service_usage_count: MaybeAbsent<i16>,
+struct UpdateInvoicePartiallyPayload {
+    order_id: MaybeAbsent<i32>,
+    issue_date: MaybeAbsent<Date>
 }
 
 #[patch("/")]
-async fn update_discount_partially(
-    Query(params): Query<DiscountManipulationParams>,
-    Json(payload): Json<UpdateDiscountPartiallyPayload>,
+async fn update_invoice_partially(
+    Query(params): Query<InvoiceManipulationParams>,
+    Json(payload): Json<UpdateInvoicePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
     let dealership_to_update =
-        Discount::select(params.discount_number, params.dealership_rif, db.get_ref())
+        Invoice::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("discount".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("invoice".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
                     anyhow!(err)
-                        .context("Failed to fetch the discount to update from the database"),
+                        .context("Failed to fetch the invoice to update from the database"),
                 ),
             })?;
 
-    let updated_discount = UpdateDiscount {
-        dealership_rif: payload.dealership_rif.into(),
-        discount_percentage: payload.discount_percentage.into(),
-        required_annual_service_usage_count: payload.required_annual_service_usage_count.into(),
+    let updated_invoice = UpdateInvoice {
+        order_id: payload.order_id.into(),
+        issue_date: payload.issue_date.into(),
     }
     .update(dealership_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified dealershipRif does not exist".to_string(),
+                "The specified orderId does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to update the dealership from the database"),
+            anyhow!(err).context("Failed to update the invoice from the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: updated_discount,
+        data: updated_invoice,
     }))
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct UpdateDiscountCompletelyPayload {
-    dealership_rif: String,
-    discount_percentage: BigDecimal,
-    required_annual_service_usage_count: i16,
+struct UpdateInvoiceCompletelyPayload {
+    order_id: i32,
+    issue_date: Date
 }
 
 #[put("/")]
-async fn update_discount_completely(
-    Query(params): Query<DiscountManipulationParams>,
-    Json(payload): Json<UpdateDiscountCompletelyPayload>,
+async fn update_invoice_completely(
+    Query(params): Query<InvoiceManipulationParams>,
+    Json(payload): Json<UpdateInvoiceCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
     let city_to_update =
-        Discount::select(params.discount_number, params.dealership_rif, db.get_ref())
+        Invoice::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("discount".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("invoice".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
                     anyhow!(err)
-                        .context("Failed to fetch the discount to update from the database"),
+                        .context("Failed to fetch the invoice to update from the database"),
                 ),
             })?;
 
-    let updated_discount = UpdateDiscount {
-        dealership_rif: Some(payload.dealership_rif),
-        discount_percentage: Some(payload.discount_percentage),
-        required_annual_service_usage_count: Some(payload.required_annual_service_usage_count),
+    let updated_invoice = UpdateInvoice {
+        order_id: Some(payload.order_id),
+        issue_date: Some(payload.issue_date),
     }
     .update(city_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified dealershipRif does not exist".to_string(),
+                "The specified orderId does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to update the discount from the database"),
+            anyhow!(err).context("Failed to update the invoice from the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: updated_discount,
+        data: updated_invoice,
     }))
 }
 
 #[delete("/")]
-async fn delete_discount(
-    Query(params): Query<DiscountManipulationParams>,
+async fn delete_invoice(
+    Query(params): Query<InvoiceManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let deleted_discount =
-        Discount::delete(params.discount_number, params.dealership_rif, db.get_ref())
+    let deleted_invoice =
+        Invoice::delete(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("discount".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("invoice".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
                     anyhow!(err)
-                        .context("Failed to fetch the discount to delete from the database"),
+                        .context("Failed to fetch the invoice to delete from the database"),
                 ),
             })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: deleted_discount,
+        data: deleted_invoice,
     }))
 }
