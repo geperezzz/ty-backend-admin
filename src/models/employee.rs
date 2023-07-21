@@ -3,7 +3,7 @@ use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{Executor, Postgres};
 
-use crate::utils::{pagination::{Page, Pages, Paginable} };
+use crate::utils::pagination::{Page, Pages, Paginable};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -254,8 +254,13 @@ impl UpdateEmployee {
         let new_address = self.address.unwrap_or(target.address);
         let new_role_id = self.role_id.unwrap_or(target.role_id);
         let new_salary = self.salary.unwrap_or(target.salary);
-        let new_employer_dealership_rif = self.employer_dealership_rif.as_ref().unwrap_or(&target.employer_dealership_rif);
-        let new_helped_dealership_rif = self.helped_dealership_rif.unwrap_or(target.helped_dealership_rif);
+        let new_employer_dealership_rif = self
+            .employer_dealership_rif
+            .as_ref()
+            .unwrap_or(&target.employer_dealership_rif);
+        let new_helped_dealership_rif = self
+            .helped_dealership_rif
+            .unwrap_or(target.helped_dealership_rif);
 
         sqlx::query_as!(
             Employee,

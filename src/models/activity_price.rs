@@ -196,7 +196,10 @@ impl UpdateActivityPrice {
     ) -> Result<ActivityPrice, sqlx::Error> {
         let new_activity_number = self.activity_number.unwrap_or(target.activity_number);
         let new_service_id = self.service_id.unwrap_or(target.service_id);
-        let new_dealership_rif = self.dealership_rif.as_ref().unwrap_or(&target.dealership_rif);
+        let new_dealership_rif = self
+            .dealership_rif
+            .as_ref()
+            .unwrap_or(&target.dealership_rif);
         let new_price_per_hour = self.price_per_hour.unwrap_or(target.price_per_hour);
 
         sqlx::query_as!(

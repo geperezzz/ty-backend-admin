@@ -54,7 +54,7 @@ async fn create_activity_price(
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidCreateError(
-                "One of the specified values for the following keys does not exist: activityNumber, serviceId, dealershipRif".to_string(),
+                "One of the specified values for one of the following keys does not exist: activityNumber, serviceId, dealershipRif".to_string(),
                 anyhow!(err),
             )
         }
@@ -131,7 +131,9 @@ async fn fetch_activities_prices(
     Ok(response)
 }
 
-async fn fetch_all_activities_prices(db: &Pool<Postgres>) -> Result<Vec<ActivityPrice>, ServiceError> {
+async fn fetch_all_activities_prices(
+    db: &Pool<Postgres>,
+) -> Result<Vec<ActivityPrice>, ServiceError> {
     let fetched_activities_prices = ActivityPrice::select_all(db)
         .await
         .context("Failed to fetch the activities prices from the database")?;
@@ -157,7 +159,7 @@ async fn fetch_activities_prices_paginated(
 struct ActivityPriceManipulationParams {
     activity_number: i32,
     service_id: i32,
-    dealership_rif: String
+    dealership_rif: String,
 }
 
 #[get("/view/")]
@@ -165,17 +167,21 @@ async fn fetch_activity_price(
     Query(params): Query<ActivityPriceManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let fetched_activity_price =
-        ActivityPrice::select(params.activity_number, params.service_id, params.dealership_rif, db.get_ref())
-            .await
-            .map_err(|err| match &err {
-                sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("activity price".to_string(), anyhow!(err))
-                }
-                _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the activity price from the database"),
-                ),
-            })?;
+    let fetched_activity_price = ActivityPrice::select(
+        params.activity_number,
+        params.service_id,
+        params.dealership_rif,
+        db.get_ref(),
+    )
+    .await
+    .map_err(|err| match &err {
+        sqlx::Error::RowNotFound => {
+            ServiceError::ResourceNotFound("activity price".to_string(), anyhow!(err))
+        }
+        _ => ServiceError::UnexpectedError(
+            anyhow!(err).context("Failed to fetch the activity price from the database"),
+        ),
+    })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: fetched_activity_price,
@@ -199,18 +205,21 @@ async fn update_activity_price_partially(
     Json(payload): Json<UpdateActivityPricePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let activity_to_update =
-        ActivityPrice::select(params.activity_number, params.service_id, params.dealership_rif, db.get_ref())
-            .await
-            .map_err(|err| match &err {
-                sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("activity price".to_string(), anyhow!(err))
-                }
-                _ => ServiceError::UnexpectedError(
-                    anyhow!(err)
-                        .context("Failed to fetch the activity to update from the database"),
-                ),
-            })?;
+    let activity_to_update = ActivityPrice::select(
+        params.activity_number,
+        params.service_id,
+        params.dealership_rif,
+        db.get_ref(),
+    )
+    .await
+    .map_err(|err| match &err {
+        sqlx::Error::RowNotFound => {
+            ServiceError::ResourceNotFound("activity price".to_string(), anyhow!(err))
+        }
+        _ => ServiceError::UnexpectedError(
+            anyhow!(err).context("Failed to fetch the activity to update from the database"),
+        ),
+    })?;
 
     let updated_activity_price = UpdateActivityPrice {
         activity_number: payload.activity_number.into(),
@@ -223,7 +232,7 @@ async fn update_activity_price_partially(
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "One of the specified values for the following keys does not exist: activityNumber, serviceId, dealershipRif".to_string(),
+                "One of the specified values for one of the following keys does not exist: activityNumber, serviceId, dealershipRif".to_string(),
                 anyhow!(err),
             )
         }
@@ -253,18 +262,21 @@ async fn update_activity_price_completely(
     Json(payload): Json<UpdateActivityPriceCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let activity_to_update =
-        ActivityPrice::select(params.activity_number, params.service_id, params.dealership_rif, db.get_ref())
-            .await
-            .map_err(|err| match &err {
-                sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("activity price".to_string(), anyhow!(err))
-                }
-                _ => ServiceError::UnexpectedError(
-                    anyhow!(err)
-                        .context("Failed to fetch the activity price to update from the database"),
-                ),
-            })?;
+    let activity_to_update = ActivityPrice::select(
+        params.activity_number,
+        params.service_id,
+        params.dealership_rif,
+        db.get_ref(),
+    )
+    .await
+    .map_err(|err| match &err {
+        sqlx::Error::RowNotFound => {
+            ServiceError::ResourceNotFound("activity price".to_string(), anyhow!(err))
+        }
+        _ => ServiceError::UnexpectedError(
+            anyhow!(err).context("Failed to fetch the activity price to update from the database"),
+        ),
+    })?;
 
     let updated_activity_price = UpdateActivityPrice {
         activity_number: Some(payload.activity_number),
@@ -277,7 +289,7 @@ async fn update_activity_price_completely(
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "One of the specified values for the following keys does not exist: activityNumber, serviceId, dealershipRif".to_string(),
+                "One of the specified values for one of the following keys does not exist: activityNumber, serviceId, dealershipRif".to_string(),
                 anyhow!(err),
             )
         }
@@ -296,17 +308,21 @@ async fn delete_activity_price(
     Query(params): Query<ActivityPriceManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let deleted_activity_price =
-        ActivityPrice::delete(params.activity_number, params.service_id, params.dealership_rif, db.get_ref())
-            .await
-            .map_err(|err| match &err {
-                sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("activity price".to_string(), anyhow!(err))
-                }
-                _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to get the activity price to delete from the database"),
-                ),
-            })?;
+    let deleted_activity_price = ActivityPrice::delete(
+        params.activity_number,
+        params.service_id,
+        params.dealership_rif,
+        db.get_ref(),
+    )
+    .await
+    .map_err(|err| match &err {
+        sqlx::Error::RowNotFound => {
+            ServiceError::ResourceNotFound("activity price".to_string(), anyhow!(err))
+        }
+        _ => ServiceError::UnexpectedError(
+            anyhow!(err).context("Failed to get the activity price to delete from the database"),
+        ),
+    })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: deleted_activity_price,

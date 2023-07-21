@@ -182,7 +182,8 @@ async fn update_supply_line_partially(
                     ServiceError::ResourceNotFound("supply line".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the supply line to update from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the supply line to update from the database"),
                 ),
             })?;
 
@@ -219,7 +220,8 @@ async fn update_supply_line_completely(
                     ServiceError::ResourceNotFound("supply line".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the supply line to update from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the supply line to update from the database"),
                 ),
             })?;
 

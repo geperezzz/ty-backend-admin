@@ -41,10 +41,10 @@ async fn create_service(
     Json(payload): Json<CreateServicePayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let created_service = InsertService { 
+    let created_service = InsertService {
         name: payload.name,
         description: payload.description,
-        coordinator_national_id: payload.coordinator_national_id 
+        coordinator_national_id: payload.coordinator_national_id,
     }
     .insert(db.get_ref())
     .await
@@ -100,8 +100,7 @@ async fn fetch_services(
             ));
         }
 
-        let fetched_services =
-            fetch_services_paginated(per_page, page_no, db.get_ref()).await?;
+        let fetched_services = fetch_services_paginated(per_page, page_no, db.get_ref()).await?;
 
         let total_services = Service::count(db.get_ref())
             .await
@@ -160,16 +159,17 @@ async fn fetch_service(
     Query(params): Query<ServiceManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let fetched_service = Service::select(params.id, db.get_ref())
-        .await
-        .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => {
-                ServiceError::ResourceNotFound("service".to_string(), anyhow!(err))
-            }
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the service from the database"),
-            ),
-        })?;
+    let fetched_service =
+        Service::select(params.id, db.get_ref())
+            .await
+            .map_err(|err| match &err {
+                sqlx::Error::RowNotFound => {
+                    ServiceError::ResourceNotFound("service".to_string(), anyhow!(err))
+                }
+                _ => ServiceError::UnexpectedError(
+                    anyhow!(err).context("Failed to fetch the service from the database"),
+                ),
+            })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: fetched_service,
@@ -284,16 +284,17 @@ async fn delete_service(
     Query(params): Query<ServiceManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let deleted_service = Service::delete(params.id, db.get_ref())
-        .await
-        .map_err(|err| match &err {
-            sqlx::Error::RowNotFound => {
-                ServiceError::ResourceNotFound("service".to_string(), anyhow!(err))
-            }
-            _ => ServiceError::UnexpectedError(
-                anyhow!(err).context("Failed to fetch the service to delete from the database"),
-            ),
-        })?;
+    let deleted_service =
+        Service::delete(params.id, db.get_ref())
+            .await
+            .map_err(|err| match &err {
+                sqlx::Error::RowNotFound => {
+                    ServiceError::ResourceNotFound("service".to_string(), anyhow!(err))
+                }
+                _ => ServiceError::UnexpectedError(
+                    anyhow!(err).context("Failed to fetch the service to delete from the database"),
+                ),
+            })?;
 
     Ok(Json(NonPaginatedResponseDto {
         data: deleted_service,

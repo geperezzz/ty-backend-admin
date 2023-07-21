@@ -15,7 +15,10 @@ use crate::{
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
-    utils::{deserialization::{MaybeAbsent, MaybeNull}, pagination::Paginable},
+    utils::{
+        deserialization::{MaybeAbsent, MaybeNull},
+        pagination::Paginable,
+    },
 };
 
 pub fn configure(configuration: &mut ServiceConfig) {
@@ -72,7 +75,8 @@ async fn create_employee(
         }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidCreateError(
-                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist".to_string(),
+                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist"
+                    .to_string(),
                 anyhow!(err),
             )
         }
@@ -253,7 +257,8 @@ async fn update_employee_partially(
         }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist".to_string(),
+                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist"
+                    .to_string(),
                 anyhow!(err),
             )
         }
@@ -323,7 +328,8 @@ async fn update_employee_completely(
         }
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist".to_string(),
+                "The specified roleId, employerDealershipRif or helpedDealershipRif does not exist"
+                    .to_string(),
                 anyhow!(err),
             )
         }
