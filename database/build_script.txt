@@ -6,10 +6,11 @@ BEGIN;
 \ir ./domains/phone_no.sql
 
 \ir ./tables/roles.sql
-\ir ./tables/staff.sql
 \ir ./tables/states.sql
 \ir ./tables/cities.sql
 \ir ./tables/dealerships.sql
+\ir ./tables/staff.sql
+\ir ./fishy/fishy_constraint.sql
 \ir ./tables/clients.sql
 \ir ./tables/vehicle_models.sql
 \ir ./tables/vehicles.sql

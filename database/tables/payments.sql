@@ -1,11 +1,3 @@
-CREATE TYPE payment_type AS ENUM (
-    'bolivares',
-    'foreign-currency',
-    'transfer',
-    'debit-card',
-    'credit-card'
-);
-
 CREATE TABLE payments (
     CONSTRAINT payments_pk
         PRIMARY KEY (payment_number, invoice_id),
@@ -19,7 +11,15 @@ CREATE TABLE payments (
         CONSTRAINT valid_amount_paid
             CHECK (amount_paid > 0),
     payment_date DATE NOT NULL,
-    payment_type payment_type NOT NULL,
+    payment_type TEXT NOT NULL
+        CONSTRAINT valid_payment_type
+            CHECK (payment_type IN (
+                'bolivares',
+                'foreign-currency',
+                'transfer',
+                'debit-card',
+                'credit-card'
+            )),
     card_number TEXT NOT NULL,
     card_bank TEXT NOT NULL
 );

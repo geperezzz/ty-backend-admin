@@ -95,6 +95,7 @@ async fn main() -> Result<(), anyhow::Error> {
             )
             .service(web::scope("/discounts").configure(services::discounts::configure))
             .service(web::scope("/invoices").configure(services::invoices::configure))
+            .service(web::scope("/payments").configure(services::payments::configure))
     })
     .bind(("localhost", 8080))
     .context("Couldn't start the server")?
