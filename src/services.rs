@@ -27,3 +27,4 @@ pub mod supply_lines;
 pub mod vehicle_applied_services;
 pub mod vehicle_models;
 pub mod vehicles;
+pub mod invoices;
