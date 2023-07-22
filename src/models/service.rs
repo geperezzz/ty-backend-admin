@@ -174,7 +174,10 @@ impl UpdateService {
     ) -> Result<Service, sqlx::Error> {
         let new_name = self.name.as_ref().unwrap_or(&target.name);
         let new_description = self.description.as_ref().unwrap_or(&target.description);
-        let new_coordinator_national_id = self.coordinator_national_id.as_ref().unwrap_or(&target.coordinator_national_id);
+        let new_coordinator_national_id = self
+            .coordinator_national_id
+            .as_ref()
+            .unwrap_or(&target.coordinator_national_id);
 
         sqlx::query_as!(
             Service,

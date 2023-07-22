@@ -48,7 +48,7 @@ async fn fetch_most_profitable_vehicle_models_in_range(
 #[serde(rename_all = "kebab-case")]
 #[serde(deny_unknown_fields)]
 struct FetchMostAttendedVehicleModelsByNameParams {
-    pub name: String
+    pub name: String,
 }
 
 #[get("/")]
@@ -56,12 +56,10 @@ async fn fetch_most_profitable_vehicle_models_by_name(
     Query(params): Query<FetchMostAttendedVehicleModelsByNameParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let fetched_vehicle_models = MostAttendedVehicleModel::select_all_by_name(
-        params.name,
-        db.get_ref(),
-    )
-    .await
-    .context("Failed to fetch the vehicle models from the database")?;
+    let fetched_vehicle_models =
+        MostAttendedVehicleModel::select_all_by_name(params.name, db.get_ref())
+            .await
+            .context("Failed to fetch the vehicle models from the database")?;
     Ok(Json(NonPaginatedResponseDto {
         data: fetched_vehicle_models,
     }))

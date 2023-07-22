@@ -11,7 +11,7 @@ use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    models::activity::{Activity, InsertActivity, UpdateActivity},
+    models::discount::{Discount, InsertDiscount, UpdateDiscount},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
@@ -20,54 +20,54 @@ use crate::{
 
 pub fn configure(configuration: &mut ServiceConfig) {
     configuration
-        .service(fetch_activities)
-        .service(fetch_activity)
-        .service(create_activity)
-        .service(update_activity_partially)
-        .service(update_activity_completely)
-        .service(delete_activity);
+        .service(fetch_discounts)
+        .service(fetch_discount)
+        .service(create_discount)
+        .service(update_discount_partially)
+        .service(update_discount_completely)
+        .service(delete_discount);
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct CreateActivityPayload {
-    service_id: i32,
-    description: String,
-    price_per_hour: BigDecimal,
+struct CreateDiscountPayload {
+    dealership_rif: String,
+    discount_percentage: BigDecimal,
+    required_annual_service_usage_count: i16,
 }
 
 #[post("/")]
-async fn create_activity(
-    Json(payload): Json<CreateActivityPayload>,
+async fn create_discount(
+    Json(payload): Json<CreateDiscountPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let created_activity = InsertActivity {
-        service_id: payload.service_id,
-        description: payload.description,
-        price_per_hour: payload.price_per_hour,
+    let created_discount = InsertDiscount {
+        dealership_rif: payload.dealership_rif,
+        discount_percentage: payload.discount_percentage,
+        required_annual_service_usage_count: payload.required_annual_service_usage_count,
     }
     .insert(db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidCreateError(
-                "The specified serviceId does not exist".to_string(),
+                "The specified dealershipRif does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to insert the activity into the database"),
+            anyhow!(err).context("Failed to insert the discount into the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: created_activity,
+        data: created_discount,
     }))
 }
 
 #[get("/")]
-async fn fetch_activities(
+async fn fetch_discounts(
     Query(pagination_params): Query<PaginationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<HttpResponse, ServiceError> {
@@ -101,81 +101,80 @@ async fn fetch_activities(
             ));
         }
 
-        let fetched_activities =
-            fetch_activities_paginated(per_page, page_no, db.get_ref()).await?;
+        let fetched_discounts = fetch_discounts_paginated(per_page, page_no, db.get_ref()).await?;
 
-        let total_activities = Activity::count(db.get_ref())
+        let total_discounts = Discount::count(db.get_ref())
             .await
-            .context("Failed to count the activities from the database")?;
+            .context("Failed to count the discounts from the database")?;
 
         let response = HttpResponse::build(StatusCode::OK)
             .content_type(ContentType::json())
             .json(PaginatedResponseDto {
-                data: fetched_activities,
-                pagination: Pagination::new(total_activities, page_no, per_page),
+                data: fetched_discounts,
+                pagination: Pagination::new(total_discounts, page_no, per_page),
             });
 
         return Ok(response);
     }
 
-    let fetched_activities = fetch_all_activities(db.get_ref()).await?;
+    let fetched_discounts = fetch_all_discounts(db.get_ref()).await?;
 
     let response = HttpResponse::build(StatusCode::OK)
         .content_type(ContentType::json())
         .json(NonPaginatedResponseDto {
-            data: fetched_activities,
+            data: fetched_discounts,
         });
 
     Ok(response)
 }
 
-async fn fetch_all_activities(db: &Pool<Postgres>) -> Result<Vec<Activity>, ServiceError> {
-    let fetched_activities = Activity::select_all(db)
+async fn fetch_all_discounts(db: &Pool<Postgres>) -> Result<Vec<Discount>, ServiceError> {
+    let fetched_discounts = Discount::select_all(db)
         .await
-        .context("Failed to fetch the activities from the database")?;
-    Ok(fetched_activities)
+        .context("Failed to fetch the discounts from the database")?;
+    Ok(fetched_discounts)
 }
 
-async fn fetch_activities_paginated(
+async fn fetch_discounts_paginated(
     per_page: i64,
     page_no: i64,
     db: &Pool<Postgres>,
-) -> Result<Vec<Activity>, ServiceError> {
-    let fetched_activities = Activity::paginate(per_page)
+) -> Result<Vec<Discount>, ServiceError> {
+    let fetched_discounts = Discount::paginate(per_page)
         .get_page(page_no, db)
         .await
-        .context("Failed to fetch the activities from the database for the provided page")?;
+        .context("Failed to fetch the discounts from the database for the provided page")?;
 
-    Ok(fetched_activities.items)
+    Ok(fetched_discounts.items)
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(deny_unknown_fields)]
-struct ActivityManipulationParams {
-    activity_number: i32,
-    service_id: i32,
+struct DiscountManipulationParams {
+    discount_number: i32,
+    dealership_rif: String,
 }
 
 #[get("/view/")]
-async fn fetch_activity(
-    Query(params): Query<ActivityManipulationParams>,
+async fn fetch_discount(
+    Query(params): Query<DiscountManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let fetched_activity =
-        Activity::select(params.activity_number, params.service_id, db.get_ref())
+    let fetched_discount =
+        Discount::select(params.discount_number, params.dealership_rif, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("discount".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the activity from the database"),
+                    anyhow!(err).context("Failed to fetch the discount from the database"),
                 ),
             })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: fetched_activity,
+        data: fetched_discount,
     }))
 }
 
@@ -183,125 +182,126 @@ async fn fetch_activity(
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 #[serde(default)]
-struct UpdateActivityPartiallyPayload {
-    service_id: MaybeAbsent<i32>,
-    description: MaybeAbsent<String>,
-    price_per_hour: MaybeAbsent<BigDecimal>,
+struct UpdateDiscountPartiallyPayload {
+    dealership_rif: MaybeAbsent<String>,
+    discount_percentage: MaybeAbsent<BigDecimal>,
+    required_annual_service_usage_count: MaybeAbsent<i16>,
 }
 
 #[patch("/")]
-async fn update_activity_partially(
-    Query(params): Query<ActivityManipulationParams>,
-    Json(payload): Json<UpdateActivityPartiallyPayload>,
+async fn update_discount_partially(
+    Query(params): Query<DiscountManipulationParams>,
+    Json(payload): Json<UpdateDiscountPartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let activity_to_update =
-        Activity::select(params.activity_number, params.service_id, db.get_ref())
+    let dealership_to_update =
+        Discount::select(params.discount_number, params.dealership_rif, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("discount".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
                     anyhow!(err)
-                        .context("Failed to fetch the activity to update from the database"),
+                        .context("Failed to fetch the discount to update from the database"),
                 ),
             })?;
 
-    let updated_activity = UpdateActivity {
-        service_id: payload.service_id.into(),
-        description: payload.description.into(),
-        price_per_hour: payload.price_per_hour.into(),
+    let updated_discount = UpdateDiscount {
+        dealership_rif: payload.dealership_rif.into(),
+        discount_percentage: payload.discount_percentage.into(),
+        required_annual_service_usage_count: payload.required_annual_service_usage_count.into(),
     }
-    .update(activity_to_update, db.get_ref())
+    .update(dealership_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified serviceId does not exist".to_string(),
+                "The specified dealershipRif does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to update the activity from the database"),
+            anyhow!(err).context("Failed to update the dealership from the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: updated_activity,
+        data: updated_discount,
     }))
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct UpdateActivityCompletelyPayload {
-    service_id: i32,
-    description: String,
-    price_per_hour: BigDecimal,
+struct UpdateDiscountCompletelyPayload {
+    dealership_rif: String,
+    discount_percentage: BigDecimal,
+    required_annual_service_usage_count: i16,
 }
 
 #[put("/")]
-async fn update_activity_completely(
-    Query(params): Query<ActivityManipulationParams>,
-    Json(payload): Json<UpdateActivityCompletelyPayload>,
+async fn update_discount_completely(
+    Query(params): Query<DiscountManipulationParams>,
+    Json(payload): Json<UpdateDiscountCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let activity_to_update =
-        Activity::select(params.activity_number, params.service_id, db.get_ref())
+    let city_to_update =
+        Discount::select(params.discount_number, params.dealership_rif, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("discount".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
                     anyhow!(err)
-                        .context("Failed to fetch the activity to update from the database"),
+                        .context("Failed to fetch the discount to update from the database"),
                 ),
             })?;
 
-    let updated_activity = UpdateActivity {
-        service_id: Some(payload.service_id),
-        description: Some(payload.description),
-        price_per_hour: Some(payload.price_per_hour),
+    let updated_discount = UpdateDiscount {
+        dealership_rif: Some(payload.dealership_rif),
+        discount_percentage: Some(payload.discount_percentage),
+        required_annual_service_usage_count: Some(payload.required_annual_service_usage_count),
     }
-    .update(activity_to_update, db.get_ref())
+    .update(city_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidUpdateError(
-                "The specified serviceId does not exist".to_string(),
+                "The specified dealershipRif does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to update the activity from the database"),
+            anyhow!(err).context("Failed to update the discount from the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: updated_activity,
+        data: updated_discount,
     }))
 }
 
 #[delete("/")]
-async fn delete_activity(
-    Query(params): Query<ActivityManipulationParams>,
+async fn delete_discount(
+    Query(params): Query<DiscountManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let deleted_activity =
-        Activity::delete(params.activity_number, params.service_id, db.get_ref())
+    let deleted_discount =
+        Discount::delete(params.discount_number, params.dealership_rif, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("activity".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("discount".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to get the activity to delete from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the discount to delete from the database"),
                 ),
             })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: deleted_activity,
+        data: deleted_discount,
     }))
 }

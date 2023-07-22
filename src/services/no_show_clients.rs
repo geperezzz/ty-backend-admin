@@ -16,9 +16,7 @@ pub fn configure(configuration: &mut ServiceConfig) {
 }
 
 #[get("/")]
-async fn fetch_no_show_clients(
-    db: Data<Pool<Postgres>>,
-) -> Result<impl Responder, ServiceError> {
+async fn fetch_no_show_clients(db: Data<Pool<Postgres>>) -> Result<impl Responder, ServiceError> {
     let fetched_clients = NoShowClient::select_all(db.get_ref())
         .await
         .context("Failed to fetch the clients from the database")?;

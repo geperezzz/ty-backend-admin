@@ -14,7 +14,10 @@ use crate::{
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
-    utils::{deserialization::MaybeAbsent, pagination::Paginable},
+    utils::{
+        deserialization::MaybeAbsent,
+        pagination::Paginable,
+    },
 };
 
 pub fn configure(configuration: &mut ServiceConfig) {

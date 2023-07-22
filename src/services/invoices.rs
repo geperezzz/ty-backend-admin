@@ -8,9 +8,10 @@ use actix_web::{
 use anyhow::{anyhow, Context};
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
+use time::Date;
 
 use crate::{
-    models::service::{InsertService, Service, UpdateService},
+    models::invoice::{Invoice, InsertInvoice, UpdateInvoice},
     services::pagination_params::PaginationParams,
     services::responses_dto::*,
     services::service_error::ServiceError,
@@ -19,54 +20,52 @@ use crate::{
 
 pub fn configure(configuration: &mut ServiceConfig) {
     configuration
-        .service(fetch_services)
-        .service(fetch_service)
-        .service(create_service)
-        .service(update_service_partially)
-        .service(update_service_completely)
-        .service(delete_service);
+        .service(fetch_invoices)
+        .service(fetch_invoice)
+        .service(create_invoice)
+        .service(update_invoice_partially)
+        .service(update_invoice_completely)
+        .service(delete_invoice);
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct CreateServicePayload {
-    name: String,
-    description: String,
-    coordinator_national_id: String,
+struct CreateInvoicePayload {
+    order_id: i32,
+    issue_date: Date
 }
 
 #[post("/")]
-async fn create_service(
-    Json(payload): Json<CreateServicePayload>,
+async fn create_invoice(
+    Json(payload): Json<CreateInvoicePayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let created_service = InsertService {
-        name: payload.name,
-        description: payload.description,
-        coordinator_national_id: payload.coordinator_national_id,
+    let created_invoice = InsertInvoice {
+        order_id: payload.order_id,
+        issue_date: payload.issue_date,
     }
     .insert(db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
             ServiceError::InvalidCreateError(
-                "The specified coordinatorNationalId does not exist".to_string(),
+                "The specified orderId does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to insert the service into the database"),
+            anyhow!(err).context("Failed to insert the invoice into the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: created_service,
+        data: created_invoice,
     }))
 }
 
 #[get("/")]
-async fn fetch_services(
+async fn fetch_invoices(
     Query(pagination_params): Query<PaginationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<HttpResponse, ServiceError> {
@@ -100,79 +99,79 @@ async fn fetch_services(
             ));
         }
 
-        let fetched_services = fetch_services_paginated(per_page, page_no, db.get_ref()).await?;
+        let fetched_invoices = fetch_invoices_paginated(per_page, page_no, db.get_ref()).await?;
 
-        let total_services = Service::count(db.get_ref())
+        let total_invoices = Invoice::count(db.get_ref())
             .await
-            .context("Failed to count the services from the database")?;
+            .context("Failed to count the invoices from the database")?;
 
         let response = HttpResponse::build(StatusCode::OK)
             .content_type(ContentType::json())
             .json(PaginatedResponseDto {
-                data: fetched_services,
-                pagination: Pagination::new(total_services, page_no, per_page),
+                data: fetched_invoices,
+                pagination: Pagination::new(total_invoices, page_no, per_page),
             });
 
         return Ok(response);
     }
 
-    let fetched_services = fetch_all_services(db.get_ref()).await?;
+    let fetched_invoices = fetch_all_invoices(db.get_ref()).await?;
 
     let response = HttpResponse::build(StatusCode::OK)
         .content_type(ContentType::json())
         .json(NonPaginatedResponseDto {
-            data: fetched_services,
+            data: fetched_invoices,
         });
 
     Ok(response)
 }
 
-async fn fetch_all_services(db: &Pool<Postgres>) -> Result<Vec<Service>, ServiceError> {
-    let fetched_services = Service::select_all(db)
+async fn fetch_all_invoices(db: &Pool<Postgres>) -> Result<Vec<Invoice>, ServiceError> {
+    let fetched_invoices = Invoice::select_all(db)
         .await
-        .context("Failed to fetch the services from the database")?;
-    Ok(fetched_services)
+        .context("Failed to fetch the invoices from the database")?;
+    Ok(fetched_invoices)
 }
 
-async fn fetch_services_paginated(
+async fn fetch_invoices_paginated(
     per_page: i64,
     page_no: i64,
     db: &Pool<Postgres>,
-) -> Result<Vec<Service>, ServiceError> {
-    let fetched_services = Service::paginate(per_page)
+) -> Result<Vec<Invoice>, ServiceError> {
+    let fetched_invoices = Invoice::paginate(per_page)
         .get_page(page_no, db)
         .await
-        .context("Failed to fetch the services from the database for the provided page")?;
+        .context("Failed to fetch the invoices from the database for the provided page")?;
 
-    Ok(fetched_services.items)
+    Ok(fetched_invoices.items)
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(deny_unknown_fields)]
-struct ServiceManipulationParams {
-    id: i32,
+struct InvoiceManipulationParams {
+    id: i32
 }
 
 #[get("/view/")]
-async fn fetch_service(
-    Query(params): Query<ServiceManipulationParams>,
+async fn fetch_invoice(
+    Query(params): Query<InvoiceManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let fetched_service =
-        Service::select(params.id, db.get_ref())
+    let fetched_invoice =
+        Invoice::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("service".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("invoice".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the service from the database"),
+                    anyhow!(err).context("Failed to fetch the invoice from the database"),
                 ),
             })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: fetched_service,
+        data: fetched_invoice,
     }))
 }
 
@@ -180,123 +179,122 @@ async fn fetch_service(
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 #[serde(default)]
-struct UpdateServicePartiallyPayload {
-    name: MaybeAbsent<String>,
-    description: MaybeAbsent<String>,
-    coordinator_national_id: MaybeAbsent<String>,
+struct UpdateInvoicePartiallyPayload {
+    order_id: MaybeAbsent<i32>,
+    issue_date: MaybeAbsent<Date>
 }
 
 #[patch("/")]
-async fn update_service_partially(
-    Query(params): Query<ServiceManipulationParams>,
-    Json(payload): Json<UpdateServicePartiallyPayload>,
+async fn update_invoice_partially(
+    Query(params): Query<InvoiceManipulationParams>,
+    Json(payload): Json<UpdateInvoicePartiallyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let service_to_update =
-        Service::select(params.id, db.get_ref())
+    let dealership_to_update =
+        Invoice::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("service".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("invoice".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the service to update from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the invoice to update from the database"),
                 ),
             })?;
 
-    let updated_service = UpdateService {
-        name: payload.name.into(),
-        description: payload.description.into(),
-        coordinator_national_id: payload.coordinator_national_id.into(),
+    let updated_invoice = UpdateInvoice {
+        order_id: payload.order_id.into(),
+        issue_date: payload.issue_date.into(),
     }
-    .update(service_to_update, db.get_ref())
+    .update(dealership_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidCreateError(
-                "The specified coordinatorNationalId does not exist".to_string(),
+            ServiceError::InvalidUpdateError(
+                "The specified orderId does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to insert the service into the database"),
+            anyhow!(err).context("Failed to update the invoice from the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: updated_service,
+        data: updated_invoice,
     }))
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct UpdateServiceCompletelyPayload {
-    name: String,
-    description: String,
-    coordinator_national_id: String,
+struct UpdateInvoiceCompletelyPayload {
+    order_id: i32,
+    issue_date: Date
 }
 
 #[put("/")]
-async fn update_service_completely(
-    Query(params): Query<ServiceManipulationParams>,
-    Json(payload): Json<UpdateServiceCompletelyPayload>,
+async fn update_invoice_completely(
+    Query(params): Query<InvoiceManipulationParams>,
+    Json(payload): Json<UpdateInvoiceCompletelyPayload>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let service_to_update =
-        Service::select(params.id, db.get_ref())
+    let city_to_update =
+        Invoice::select(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("service".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("invoice".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the service to update from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the invoice to update from the database"),
                 ),
             })?;
 
-    let updated_service = UpdateService {
-        name: Some(payload.name),
-        description: Some(payload.description),
-        coordinator_national_id: Some(payload.coordinator_national_id),
+    let updated_invoice = UpdateInvoice {
+        order_id: Some(payload.order_id),
+        issue_date: Some(payload.issue_date),
     }
-    .update(service_to_update, db.get_ref())
+    .update(city_to_update, db.get_ref())
     .await
     .map_err(|err| match &err {
         sqlx::Error::Database(db_err) if db_err.is_foreign_key_violation() => {
-            ServiceError::InvalidCreateError(
-                "The specified coordinatorNationalId does not exist".to_string(),
+            ServiceError::InvalidUpdateError(
+                "The specified orderId does not exist".to_string(),
                 anyhow!(err),
             )
         }
         _ => ServiceError::UnexpectedError(
-            anyhow!(err).context("Failed to insert the service into the database"),
+            anyhow!(err).context("Failed to update the invoice from the database"),
         ),
     })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: updated_service,
+        data: updated_invoice,
     }))
 }
 
 #[delete("/")]
-async fn delete_service(
-    Query(params): Query<ServiceManipulationParams>,
+async fn delete_invoice(
+    Query(params): Query<InvoiceManipulationParams>,
     db: Data<Pool<Postgres>>,
 ) -> Result<impl Responder, ServiceError> {
-    let deleted_service =
-        Service::delete(params.id, db.get_ref())
+    let deleted_invoice =
+        Invoice::delete(params.id, db.get_ref())
             .await
             .map_err(|err| match &err {
                 sqlx::Error::RowNotFound => {
-                    ServiceError::ResourceNotFound("service".to_string(), anyhow!(err))
+                    ServiceError::ResourceNotFound("invoice".to_string(), anyhow!(err))
                 }
                 _ => ServiceError::UnexpectedError(
-                    anyhow!(err).context("Failed to fetch the service to delete from the database"),
+                    anyhow!(err)
+                        .context("Failed to fetch the invoice to delete from the database"),
                 ),
             })?;
 
     Ok(Json(NonPaginatedResponseDto {
-        data: deleted_service,
+        data: deleted_invoice,
     }))
 }

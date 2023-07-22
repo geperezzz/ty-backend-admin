@@ -51,19 +51,51 @@ async fn main() -> Result<(), anyhow::Error> {
             .service(web::scope("/staff").configure(staff::configure))
             .service(web::scope("/activities").configure(activities::configure))
             .service(web::scope("/dealerships").configure(dealerships::configure))
-            .service(web::scope("/least-employed-employees").configure(least_employed_employees::configure))
-            .service(web::scope("/least-profitable-dealerships").configure(least_profitable_dealerships::configure))
-            .service(web::scope("/least-requested-services").configure(least_requested_services::configure))
+            .service(
+                web::scope("/least-employed-employees")
+                    .configure(least_employed_employees::configure),
+            )
+            .service(
+                web::scope("/least-profitable-dealerships")
+                    .configure(least_profitable_dealerships::configure),
+            )
+            .service(
+                web::scope("/least-requested-services")
+                    .configure(least_requested_services::configure),
+            )
             .service(web::scope("/least-used-products").configure(least_used_products::configure))
-            .service(web::scope("/maintenance-schedules").configure(maintenance_schedules::configure))
-            .service(web::scope("/most-attended-vehicle-models").configure(most_attended_vehicle_models::configure))
-            .service(web::scope("/most-employed-employees").configure(most_employed_employees::configure))
-            .service(web::scope("/most-profitable-dealerships").configure(most_profitable_dealerships::configure))
-            .service(web::scope("/most-requested-services").configure(most_requested_services::configure))
+            .service(
+                web::scope("/maintenance-schedules").configure(maintenance_schedules::configure),
+            )
+            .service(
+                web::scope("/most-attended-vehicle-models")
+                    .configure(most_attended_vehicle_models::configure),
+            )
+            .service(
+                web::scope("/most-employed-employees")
+                    .configure(most_employed_employees::configure),
+            )
+            .service(
+                web::scope("/most-profitable-dealerships")
+                    .configure(most_profitable_dealerships::configure),
+            )
+            .service(
+                web::scope("/most-requested-services")
+                    .configure(most_requested_services::configure),
+            )
             .service(web::scope("/most-used-products").configure(most_used_products::configure))
             .service(web::scope("/no-show-clients").configure(no_show_clients::configure))
-            .service(web::scope("/vehicle-applied-services").configure(vehicle_applied_services::configure))
+            .service(
+                web::scope("/vehicle-applied-services")
+                    .configure(vehicle_applied_services::configure),
+            )
             .service(web::scope("/services").configure(services::services::configure))
+            .service(
+                web::scope("/activities-prices").configure(services::activities_prices::configure),
+            )
+            .service(web::scope("/discounts").configure(services::discounts::configure))
+            .service(web::scope("/invoices").configure(services::invoices::configure))
+            .service(web::scope("/payments").configure(services::payments::configure))
     })
     .bind(("localhost", 8080))
     .context("Couldn't start the server")?
