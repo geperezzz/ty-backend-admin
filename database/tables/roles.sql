@@ -5,3 +5,13 @@ CREATE TABLE roles (
     name TEXT NOT NULL,
     description TEXT NOT NULL
 );
+
+INSERT INTO roles
+    (name, description)
+VALUES
+    ('Encargado', 'Empleado que gestiona un concesionario.');
+
+INSERT INTO roles
+    (name, description)
+VALUES
+    ('Analista', 'Empleado que recibe vehiculos para su revisión y genera órdenes si es necesario.');

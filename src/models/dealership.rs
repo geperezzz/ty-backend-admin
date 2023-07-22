@@ -10,8 +10,7 @@ pub struct Dealership {
     pub rif: String,
     pub name: String,
     pub city_number: i32,
-    pub state_id: i32,
-    pub manager_national_id: Option<String>,
+    pub state_id: i32
 }
 
 impl Dealership {
@@ -26,8 +25,7 @@ impl Dealership {
                 rif,
                 name,
                 city_number,
-                state_id,
-                manager_national_id
+                state_id
             FROM 
                 dealerships
             WHERE
@@ -49,8 +47,7 @@ impl Dealership {
                 rif,
                 name,
                 city_number,
-                state_id,
-                manager_national_id
+                state_id
             FROM 
                 dealerships
             "#
@@ -88,8 +85,7 @@ impl Dealership {
                 rif,
                 name,
                 city_number,
-                state_id,
-                manager_national_id
+                state_id
             "#,
             rif,
         )
@@ -112,8 +108,7 @@ impl Paginable<Dealership> for Dealership {
                     rif,
                     name,
                     city_number,
-                    state_id,
-                    manager_national_id
+                    state_id
                 FROM 
                     dealerships
                 LIMIT $1
@@ -139,7 +134,6 @@ pub struct InsertDealership {
     pub name: String,
     pub city_number: i32,
     pub state_id: i32,
-    pub manager_national_id: Option<String>,
 }
 
 impl InsertDealership {
@@ -151,21 +145,19 @@ impl InsertDealership {
             Dealership,
             r#"
             INSERT INTO dealerships 
-                (rif, name, city_number, state_id, manager_national_id)
+                (rif, name, city_number, state_id)
             VALUES 
-                ($1, $2, $3, $4, $5)
+                ($1, $2, $3, $4)
             RETURNING 
                 rif,
                 name,
                 city_number,
-                state_id,
-                manager_national_id
+                state_id
             "#,
             self.rif as _,
             self.name,
             self.city_number,
             self.state_id,
-            self.manager_national_id as _
         )
         .fetch_one(connection)
         .await
@@ -178,7 +170,6 @@ pub struct UpdateDealership {
     pub name: Option<String>,
     pub city_number: Option<i32>,
     pub state_id: Option<i32>,
-    pub manager_national_id: Option<String>,
 }
 
 impl UpdateDealership {
@@ -191,11 +182,6 @@ impl UpdateDealership {
         let new_name = self.name.unwrap_or(target.name);
         let new_city_number = self.city_number.unwrap_or(target.city_number);
         let new_state_id = self.state_id.unwrap_or(target.state_id);
-        let new_manager_national_id = if self.manager_national_id.is_some() {
-            self.manager_national_id
-        } else {
-            target.manager_national_id
-        };
 
         sqlx::query_as!(
             Dealership,
@@ -205,22 +191,19 @@ impl UpdateDealership {
                 rif = $1,
                 name = $2,
                 city_number = $3,
-                state_id = $4,
-                manager_national_id = $5
+                state_id = $4
             WHERE 
-                rif = $6
+                rif = $5
             RETURNING 
                 rif,
                 name,
                 city_number,
-                state_id,
-                manager_national_id
+                state_id
             "#,
             new_rif as _,
             new_name,
             new_city_number,
             new_state_id,
-            new_manager_national_id as _,
             target.rif,
         )
         .fetch_one(connection)

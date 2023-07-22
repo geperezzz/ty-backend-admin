@@ -6,10 +6,10 @@ BEGIN;
 \ir ./domains/phone_no.sql
 
 \ir ./tables/roles.sql
-\ir ./tables/staff.sql
 \ir ./tables/states.sql
 \ir ./tables/cities.sql
 \ir ./tables/dealerships.sql
+\ir ./tables/staff.sql
 \ir ./tables/clients.sql
 \ir ./tables/vehicle_models.sql
 \ir ./tables/vehicles.sql
@@ -28,9 +28,13 @@ BEGIN;
 \ir ./tables/specializations.sql
 \ir ./tables/discounts.sql
 \ir ./tables/recommended_services.sql
+\ir ./tables/operatives.sql
+\ir ./tables/managers.sql
 
 \ir ./triggers/trigger_generate_invoice.sql
 \ir ./triggers/trigger_insert_dealership_into_order.sql
 \ir ./triggers/trigger_update_stock.sql
+\ir ./triggers/trigger_check_employee_is_manager.sql
+\ir ./triggers/trigger_check_employee_is_operative.sql
 
 COMMIT;
